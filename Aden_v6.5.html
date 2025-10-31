@@ -1,0 +1,2124 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" href="https://images.vexels.com/media/users/3/189101/isolated/preview/693f7da0ef1625c6b281f1428a7ecdbb-fuegos-artificiales-de-2-anillos-degradado-verde.png?w=360">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso (v6 con FAQ)</title>
+<!-- PANTALLA DE ENTRADA / MENÚ INICIAL -->
+<div id="introScreen" class="intro-screen">
+  <div class="intro-content">
+    <div class="intro-ring"></div>
+    <div class="intro-title">Aden</div>
+    <div class="intro-sub">Pulsa cualquier tecla para acceder</div>
+  </div>
+</div>
+
+<style>
+/* =====================================
+   MENÚ DE ENTRADA — PANTALLA INICIAL
+   ===================================== */
+
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeInIntro 1.2s ease both;
+}
+
+@keyframes fadeInIntro {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: none; }
+}
+
+.intro-content {
+  position: relative;
+  text-align: center;
+  color: #e9f4ff;
+  font-family: "Inter", sans-serif;
+}
+
+.intro-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-1);
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+  animation: ringPulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(87,228,184,0.3));
+}
+
+@keyframes ringPulse {
+  0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.9; }
+}
+
+.intro-title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 16px rgba(87,228,184,0.2);
+  z-index: 2;
+  position: relative;
+}
+
+.intro-sub {
+  margin-top: 22px;
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  animation: blinkText 2s ease-in-out infinite;
+}
+
+@keyframes blinkText {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Animación de salida */
+.fade-out {
+  animation: fadeOutIntro 1s ease forwards;
+}
+@keyframes fadeOutIntro {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+</style>
+
+<style>
+/* =========================================================================
+   Aden v6 con Panel FAQ desplegable
+   - Mantiene la estética anterior (oscuro, limpio).
+   - Añade drawer/floating button en esquina con todas las preguntas.
+   ========================================================================= */
+
+:root{
+  --bg-0:#07121a;
+  --bg-1:#0e1a27;
+  --panel:#11202b;
+  --glass: rgba(255,255,255,0.03);
+  --muted:#9fb0c6;
+  --accent-1:#57e4b8;
+  --accent-2:#6fb7ff;
+  --danger:#ff6b6b;
+  --card:#0b1720;
+  --radius:14px;
+  --shadow: 0 14px 36px rgba(2,8,23,0.6);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color-scheme: dark;
+}
+
+/* Base layout (copiado / adaptado de la versión previa) */
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:760px}
+
+/* Sidebar */
+.sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#022b2a;font-size:18px;box-shadow:0 6px 18px rgba(87,228,184,0.06)}
+.brand h1{margin:0;font-size:16px}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+.controls{display:flex;gap:8px;margin-top:12px}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+.btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03)}
+.btn.small{padding:6px 8px;font-size:12px}
+
+/* Search / chats list */
+.search{display:flex;gap:8px;margin-top:12px;align-items:center}
+.search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+.meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+.chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+.chat-item:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,0.35)}
+.chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+.chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+.chat-meta h4{margin:0;font-size:13px}
+.chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+
+/* Panel principal */
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.panel-header{display:flex;align-items:center;justify-content:space-between}
+.panel-header .left{display:flex;gap:12px;align-items:center}
+.panel-header h2{margin:0;font-size:18px}
+.panel-actions{display:flex;gap:8px}
+.messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+.bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+.bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+.bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+.compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+.compose .right{display:flex;flex-direction:column;gap:8px}
+.tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+.chip:hover{transform:translateY(-3px)}
+.typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+.typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.12s}
+.typing span:nth-child(3){animation-delay:.24s}
+@keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+.muted{color:var(--muted)}
+.danger{color:var(--danger)}
+.fade-in{animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.settings-panel{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.02)}
+.toggle{display:flex;align-items:center;gap:10px}
+.kbd{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:6px;font-size:12px}
+.footer-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-top:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+.small{font-size:12px;color:var(--muted)}
+.accent{color:var(--accent-1)}
+.search-highlight{background:linear-gradient(90deg, rgba(111,183,255,0.12), rgba(87,228,184,0.06));padding:4px 8px;border-radius:8px}
+.voice-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.voice-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.voice-btn.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#052a26}
+[tabindex="0"]:focus{outline:2px solid rgba(111,183,255,0.08)}
+.hr{border-top:1px dashed rgba(255,255,255,0.02);margin:10px 0}
+.center{display:flex;align-items:center;justify-content:center}
+@media (min-width:1400px){.wrap{max-width:1400px}}
+
+/* =========================
+   FAQ Drawer & Floating Button
+   ========================= */
+
+/* floating button bottom-right */
+#faqToggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  color:#052a26;font-weight:800;border:none;box-shadow:0 12px 30px rgba(2,8,23,0.6);
+  cursor:pointer;z-index:1200;
+}
+
+/* drawer */
+#faqDrawer {
+  position: fixed;
+  right: 18px;
+  bottom: 86px; /* above the button */
+  width: 380px;
+  max-height: 70vh;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:12px;
+  box-shadow: 0 20px 60px rgba(2,8,23,0.6);
+  z-index:1200;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transform: translateY(12px) scale(0.98);
+  opacity:0;
+  transition: all .18s ease;
+  pointer-events:none;
+  border:1px solid rgba(255,255,255,0.02);
+}
+
+/* when open */
+#faqDrawer.open { transform: none; opacity:1; pointer-events:auto; }
+
+/* header inside drawer */
+#faqDrawer .header { padding:12px 14px; border-bottom:1px dashed rgba(255,255,255,0.02); display:flex;justify-content:space-between;align-items:center;}
+#faqDrawer .header .title{font-weight:700}
+#faqDrawer .header .muted{font-size:12px;color:var(--muted)}
+
+/* search inside drawer */
+#faqSearch { width: calc(100% - 28px); margin:8px 14px; padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03); color:var(--muted) }
+
+/* list */
+#faqList { overflow:auto; padding:10px 8px; display:flex; flex-direction:column; gap:8px; }
+
+/* each faq item */
+.faq-item { padding:10px; border-radius:10px; background: rgba(255,255,255,0.01); display:flex; flex-direction:column; gap:6px; border:1px solid rgba(255,255,255,0.02); }
+.faq-item .q { font-weight:700; font-size:13px; }
+.faq-item .a { font-size:13px; color:var(--muted); }
+.faq-item .controls { display:flex; gap:8px; margin-top:6px; }
+.faq-item .controls button { padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--muted); cursor:pointer; font-size:13px }
+.faq-empty { padding:14px; text-align:center; color:var(--muted) }
+
+/* small footer inside drawer */
+#faqDrawer .footer { padding:10px 12px; border-top:1px dashed rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted) }
+
+/* =====================================
+   MEJORAS VISUALES + ANIMACIÓN DE MENSAJES
+   ===================================== */
+
+/* Animaciones suaves al aparecer mensajes */
+@keyframes bubbleInUser {
+  0% { transform: translateY(12px) scale(0.98); opacity: 0; }
+  100% { transform: translateY(0); scale(1); opacity: 1; }
+}
+
+@keyframes bubbleInAssistant {
+  0% { transform: translateY(12px) scale(0.96) rotate(-1deg); opacity: 0; }
+  100% { transform: translateY(0); scale(1); rotate(0deg); opacity: 1; }
+}
+
+/* Efecto de "entrada" suave */
+.bubble.user {
+  animation: bubbleInUser 0.25s ease-out both;
+  background: linear-gradient(180deg, #071425, #061422);
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 6px 20px rgba(87,228,184,0.08);
+  transition: transform .15s ease;
+}
+.bubble.user:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Aden: animación con rebote leve y color vivo */
+.bubble.assistant {
+  animation: bubbleInAssistant 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+  background: linear-gradient(180deg, #022b2a, #083345);
+  border: 1px solid rgba(87,228,184,0.08);
+  box-shadow: 0 8px 24px rgba(87,228,184,0.15);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.bubble.assistant:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 10px 28px rgba(111,183,255,0.2);
+}
+
+/* Sombra más realista al pasar el ratón */
+.chat-item:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(2,6,23,0.45);
+}
+
+/* Transiciones suaves al abrir FAQ y botones */
+#faqDrawer,
+#faqToggle,
+.btn {
+  transition: all .22s ease-in-out;
+}
+
+/* Pequeña mejora visual general */
+textarea, input {
+  transition: border-color .2s ease, background-color .2s ease;
+}
+textarea:focus, input:focus {
+  border-color: rgba(111,183,255,0.25);
+  background: rgba(255,255,255,0.02);
+}
+
+/* Animación FAQ al abrir */
+#faqDrawer.open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  animation: fadeIn .25s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+
+/* =====================================
+   EFECTO DE ESCRITURA "TYPING" EN MENSAJES
+   ===================================== */
+
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid rgba(255,255,255,0.15);
+  animation: typing 2.4s steps(40, end), blink 0.8s step-end infinite;
+}
+
+/* Velocidad de escritura (ajustable con duración del typing) */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* Parpadeo del cursor */
+@keyframes blink {
+  from, to { border-color: transparent; }
+  50% { border-color: rgba(255,255,255,0.25); }
+}
+
+/* Versión más lenta para Aden */
+.typewriter.assistant {
+  animation: typing 3.4s steps(50, end), blink 0.8s step-end infinite;
+}
+
+</style>
+</head>
+
+<script>
+document.addEventListener("keydown", hideIntro);
+document.addEventListener("click", hideIntro);
+
+function hideIntro() {
+  const intro = document.getElementById("introScreen");
+  if (!intro) return;
+  intro.classList.add("fade-out");
+  setTimeout(() => intro.remove(), 1000);
+  document.removeEventListener("keydown", hideIntro);
+  document.removeEventListener("click", hideIntro);
+}
+</script>
+
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">º_º</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Crear nuevo chat">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chats JSON">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search" aria-label="Buscar chats">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." aria-label="Buscar chats"/>
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite" aria-label="Lista de chats"></div>
+
+    <div class="settings-panel" aria-label="Ajustes rápidos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Límite respuestas/chat</div>
+          <div class="muted" id="limitDisplay">12</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="decLimit" class="btn">-</button>
+          <button id="incLimit" class="btn">+</button>
+          <button id="resetLocal" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div>
+          <div class="small">Voz &mdash; Lector</div>
+          <div class="muted">Sintetizador de voz local (SpeechSynthesis)</div>
+        </div>
+        <div>
+          <label class="toggle">
+            <input id="voiceMasterToggle" type="checkbox" aria-label="Activar/Desactivar voz"/>
+            <span class="kbd">Activar</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="voice-row" aria-label="Selector de voz">
+        <button id="voiceAuto" class="voice-btn active" title="Automático">Automático</button>
+        <button id="voiceMale" class="voice-btn" title="Forzar voz masculina">Masculino</button>
+        <button id="voiceFemale" class="voice-btn" title="Forzar voz femenina">Femenina</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="small">Personalidad</div>
+        <div class="muted">La personalidad por defecto se mantiene (Proximamente Modificable).</div>
+      </div>
+    </div>
+
+    <div class="footer-bar" aria-hidden="false">
+      <div>
+        <div class="small">Atajos</div>
+        <div class="muted">Enter = enviar · Shift+Enter = nueva línea</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small accent">Aden v6</div>
+        <div class="muted">Local · Off-line</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="panel" role="main">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona o crea un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar mensajes">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea" aria-live="polite" aria-label="Mensajes">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "Buenas", "hazme reir", "cuentame algo".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Enviar mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost" title="Deshacer">↶</button><button id="redoBtn" class="btn ghost" title="Rehacer">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FAQ Toggle Button -->
+<button id="faqToggle" title="Mostrar preguntas (FAQ)">FAQ</button>
+
+<!-- FAQ Drawer -->
+<div id="faqDrawer" aria-hidden="true">
+  <div class="header">
+    <div>
+      <div class="title">Preguntas que Aden entiende</div>
+      <div class="muted">Haz clic en "Pegar" o "Enviar" para usar una pregunta</div>
+    </div>
+    <div class="muted">Total: <span id="faqCount">0</span></div>
+  </div>
+
+  <input id="faqSearch" placeholder="Buscar en preguntas (ej: hora, chiste, python)"/>
+
+  <div id="faqList"></div>
+
+  <div class="footer">
+    <div class="muted">Tip: pulsa "Enviar" para enviar inmediatamente.</div>
+    <div><button id="faqClose" class="btn small">Cerrar</button></div>
+  </div>
+</div>
+<!-- --- Aden (ojos sencillos, sin puntos negros) --- -->
+<div id="aden" role="button" aria-label="Aden, asistente" tabindex="0">
+  <div class="eye left"></div>
+  <div class="eye right"></div>
+  <div class="mouth"></div>
+</div>
+
+<div id="aden-message" aria-live="polite"></div>
+
+<style>
+  :root{
+    --aden-left: 18px;
+    --aden-top: 18px;
+    --size: 60px;
+    --neon: #00ff99;
+    --neon-2: #00ffaa;
+  }
+
+  /* Contenedor (anillo) */
+  #aden{
+    position: fixed;
+    left: var(--aden-left);
+    top: var(--aden-top);
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    z-index: 999999;
+    cursor: pointer;
+    pointer-events: auto;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(0,255,160,0.12) 30%, rgba(0,255,160,0.02) 55%),
+      linear-gradient(135deg, rgba(0,255,160,0.06), rgba(0,255,160,0.02));
+    border: 3px solid rgba(0,255,160,0.95);
+    box-shadow:
+      0 0 18px rgba(0,255,160,0.15),
+      0 0 38px rgba(0,255,160,0.18),
+      inset 0 0 10px rgba(0,255,160,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+    animation: float-slow 12s ease-in-out infinite;
+  }
+
+  #aden:hover, #aden:focus{
+    transform: scale(1.08);
+    box-shadow:
+      0 0 30px rgba(0,255,160,0.25),
+      0 0 60px rgba(0,255,160,0.22),
+      inset 0 0 14px rgba(0,255,160,0.14);
+    outline: none;
+  }
+
+  @keyframes float-slow{
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    25%  { transform: translate3d(10px, 6px, 0) scale(1.02); }
+    50%  { transform: translate3d(-12px, 12px, 0) scale(1); }
+    75%  { transform: translate3d(8px, -6px, 0) scale(0.995); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+
+  /* Ojos: sencillos, sin puntos negros */
+  .eye{
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    top: calc(var(--size) * 0.28);
+    /* ojo simple: centro claro y borde suave fosforito */
+    background: radial-gradient(circle at 40% 35%, #eafff5 35%, rgba(0,255,200,0.85) 70%);
+    box-shadow: 0 0 8px rgba(0,255,170,0.22);
+  }
+  .eye.left{ left: calc(var(--size) * 0.18); }
+  .eye.right{ right: calc(var(--size) * 0.18); }
+
+  /* Boca (sutil) */
+  .mouth{
+    position: absolute;
+    bottom: calc(var(--size) * 0.22);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 6px;
+    border-radius: 20px;
+    background: linear-gradient(90deg, rgba(0,255,200,0.85), rgba(0,255,170,0.95));
+    opacity: 0.9;
+    box-shadow: 0 0 8px rgba(0,255,150,0.18);
+  }
+
+  /* Mensaje */
+  #aden-message{
+    position: fixed;
+    left: calc(var(--aden-left) + var(--size) + 12px);
+    top: calc(var(--aden-top) + 6px);
+    transform-origin: left top;
+    background: linear-gradient(180deg, rgba(0,0,0,0.40), rgba(8,8,8,0.25));
+    padding: 10px 14px;
+    border-radius: 12px;
+    min-width: 160px;
+    max-width: 360px;
+    color: var(--neon);
+    font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+    font-size: 13.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 18px rgba(0,255,150,0.07);
+    text-shadow: 0 0 8px rgba(0,255,150,0.08);
+    border: 1px solid rgba(0,255,150,0.06);
+    opacity: 0;
+    transition: opacity 420ms ease, transform 420ms ease;
+    z-index: 999998;
+    pointer-events: none;
+    backdrop-filter: blur(6px) saturate(120%);
+  }
+
+  #aden-message.show{
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #aden-message b{ color: #d7fff0; font-weight: 700; }
+  #aden-message .muted{ color: rgba(200,255,230,0.7); font-size: 13px; display:block; margin-top:4px; }
+
+  @media (prefers-reduced-motion: reduce){
+    #aden, #aden:hover, #aden:focus { animation: none; transition: none; transform: none; }
+  }
+</style>
+
+<script>
+  (function(){
+    const aden = document.getElementById('aden');
+    const message = document.getElementById('aden-message');
+
+    const phrases = [
+      '<b>Hola, soy Aden.</b> 👋',
+      '<b>Tu asistente</b> — Tips y ayuda tech.',
+      '<b>¿Buscas algo?</b> Puedo sugerir ideas o atajos.',
+      '<b>Tengo buen gusto</b> por lo brillante y claro. ✨',
+      '<b>Listo</b> cuando tú quieras. 🚀'
+    ];
+
+    let idx = 0;
+    let autoTimer = null;
+
+    function showMessage(duration = 3800){
+      message.innerHTML = phrases[idx] + '<span class="muted"> (haz clic para repetir)</span>';
+      message.classList.add('show');
+      message.setAttribute('aria-hidden', 'false');
+
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => {
+        message.classList.remove('show');
+        message.setAttribute('aria-hidden', 'true');
+        idx = (idx + 1) % phrases.length;
+      }, duration);
+    }
+
+    aden.addEventListener('click', () => showMessage(4200));
+    aden.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showMessage(4200); }
+    });
+
+    // Mensaje automático ocasional (cada 9s): discreto
+    setInterval(() => {
+      if (!message.classList.contains('show')) showMessage(3800);
+    }, 9000);
+
+    // Inicial: oculto (aria)
+    message.setAttribute('aria-hidden', 'true');
+  })();
+</script>
+
+
+
+<script>
+/* =========================================================================
+   Aden v6 con FAQ - JavaScript
+   - Este fichero actualiza la versión anterior.
+   - Se ha añadido: panel FAQ desplegable, más preguntas y respuestas,
+     interacciones más humanas (variaciones), y enlace rápido desde el FAQ.
+   ========================================================================= */
+
+/* -----------------------
+   Estado & Configuración
+   ----------------------- */
+const STORAGE_KEY = 'aden_local';
+const DEFAULT_LIMIT = 12;
+let chats = [];
+let activeChatId = null;
+let responsesLimit = DEFAULT_LIMIT;
+let undoStack = [], redoStack = [];
+let ttsEnabled = false;
+let ttsMode = 'auto'; // 'auto' | 'male' | 'female'
+let voiceMap = {};
+let lastAssistantUtterance = '';
+
+/* Utilidades */
+function uid(prefix='id'){ return prefix+'-'+Math.random().toString(36).slice(2,12); }
+function saveChats(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+function loadChats(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try{ chats = JSON.parse(saved) || []; } catch(e){ console.warn('localStorage parse error', e); chats=[]; localStorage.removeItem(STORAGE_KEY); }
+  } else chats = [];
+  renderChatList();
+}
+function formatTime(ts){ const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* -----------------------
+   Render lista de chats / mensajes
+   ----------------------- */
+function renderChatList(){
+  const list = document.getElementById('chatsList'); list.innerHTML='';
+  chats.sort((a,b)=>(b.updated||0)-(a.updated||0));
+  chats.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    const initial = c.name ? c.name[0].toUpperCase() : 'C';
+    const mcount = (c.messages && c.messages.length) || 0;
+    div.innerHTML = `<div class="chat-thumb" aria-hidden="true">${escapeHtml(initial)}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${mcount} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`;
+    div.onclick = ()=>{ activeChatId = c.id; renderChatList(); renderMessages(); updatePanelTitle(); };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = chats.length;
+}
+
+function getActiveChat(){ return chats.find(x=>x.id===activeChatId); }
+
+function renderMessages(){
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  const chat = getActiveChat();
+  if(!chat){ area.innerHTML = '<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>'; updatePanelTitle(); return; }
+  if(!chat.messages || chat.messages.length===0){ area.innerHTML = '<div class="muted">Escribe algo para que Aden responda. Prueba: "cuentame algo", "hazme reir", "29 x 45".</div>'; updatePanelTitle(); return; }
+  chat.messages.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    const ts = m.timestamp ? formatTime(m.timestamp) : '';
+    const content = escapeHtml(m.text).replace(/\n/g,'<br>');
+    div.innerHTML = `<div class="text">${content}</div><div class="meta"><span class="small muted">${m.role==='user'?'Tú':'Aden'}</span><span class="muted small">${ts}</span></div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+/* -----------------------
+   Mensajes: añadir y guardar
+   ----------------------- */
+function addMessage(role, text){
+  const chat = getActiveChat();
+  if(!chat) return;
+  const msg = { role, text: String(text), timestamp: Date.now() };
+  chat.messages.push(msg);
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+  if(role === 'assistant'){
+    lastAssistantUtterance = text;
+    if(!chat.meta) chat.meta = {};
+    chat.meta.greeted = true;
+    if(ttsEnabled) speakWithMode(text, detectEmotionSimple(text));
+  }
+}
+
+/* -----------------------
+   Crear, borrar, renombrar, limpiar
+   ----------------------- */
+function createNewChat(initialName){
+  const id = uid('chat');
+  const name = initialName || ('Chat '+(chats.length+1));
+  const newChat = { id, name, messages: [], created: Date.now(), updated: Date.now(), meta: { greeted:false } };
+  chats.push(newChat);
+  activeChatId = id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  // Mensaje de bienvenida (suave)
+  addMessage('assistant','¡Hola! Soy Aden, tu asistente local. ¿En qué puedo ayudarte hoy?');
+}
+function deleteActiveChat(){
+  if(!activeChatId) return;
+  const idx = chats.findIndex(c=>c.id===activeChatId);
+  if(idx>=0){
+    if(!confirm('¿Seguro que quieres eliminar este chat?')) return;
+    chats.splice(idx,1);
+    activeChatId = chats.length ? chats[0].id : null;
+    saveChats(); renderChatList(); renderMessages(); updatePanelTitle();
+  }
+}
+function clearActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return;
+  if(!confirm('Vaciar mensajes del chat actual?')) return;
+  chat.messages = []; chat.updated = Date.now(); chat.meta = { greeted:false };
+  saveChats(); renderMessages(); renderChatList();
+}
+function renameActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return alert('Selecciona un chat primero.');
+  const newName = prompt('Nuevo nombre del chat:', chat.name);
+  if(newName && newName.trim()){ chat.name = newName.trim(); chat.updated = Date.now(); saveChats(); renderChatList(); updatePanelTitle(); }
+}
+
+/* -----------------------
+   Export / Import JSON
+   ----------------------- */
+function exportAllChats(){ const dataStr = JSON.stringify(chats,null,2); const blob = new Blob([dataStr],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='aden_chats_export.json'; a.click(); URL.revokeObjectURL(url); }
+function importChatsFromFile(file){ const reader = new FileReader(); reader.onload = (e)=>{ try{ const parsed = JSON.parse(e.target.result); if(Array.isArray(parsed)){ parsed.forEach(p=>{ if(!p.id) p.id = uid('chat'); if(!p.messages) p.messages = []; if(!p.meta) p.meta = { greeted:false }; }); chats = chats.concat(parsed); saveChats(); renderChatList(); alert('Importación completa.'); } else alert('Formato inválido: se esperaba un array de chats.'); } catch(err){ alert('Error al importar: '+err.message); } }; reader.readAsText(file); }
+
+/* -----------------------
+   Text-to-Speech (TTS)
+   ----------------------- */
+function getAvailableVoices(){ return window.speechSynthesis ? window.speechSynthesis.getVoices() : []; }
+function chooseVoice(preference='auto', intention='neutral'){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = getAvailableVoices();
+  if(!voices || voices.length===0) return null;
+  const esVoices = voices.filter(v=>/(^es|spanish|es-)/i.test(v.lang) || /spanish|español/i.test(v.name));
+  const pool = esVoices.length ? esVoices : voices;
+  // heurística simple
+  let chosen = null;
+  if(preference === 'male'){
+    chosen = pool.find(v=>/male|hombre|masculin/i.test(v.name)) || pool[0];
+  } else if(preference === 'female'){
+    chosen = pool.find(v=>/female|mujer|femenin|female/i.test(v.name)) || pool[0];
+  } else {
+    if(intention === 'empathic') chosen = pool.find(v=>/soft|natural|calm|ana|laura|maria|marta/i.test(v.name)) || pool[0];
+    else chosen = pool.find(v=>/standard|es-ES|es-419/i.test(v.name)) || pool[0];
+  }
+  return chosen;
+}
+function speakTextUtterance(text, voiceObj=null, rate=1, pitch=1, lang='es-ES'){
+  if(!('speechSynthesis' in window)) return;
+  try{ window.speechSynthesis.cancel(); const ut = new SpeechSynthesisUtterance(String(text)); if(voiceObj) ut.voice = voiceObj; ut.rate = rate; ut.pitch = pitch; ut.lang = lang; window.speechSynthesis.speak(ut); } catch(e){ console.warn('TTS error', e); }
+}
+function speakWithMode(text, intention='neutral'){
+  if(!ttsEnabled) return;
+  const pref = ttsMode || 'auto';
+  const voice = chooseVoice(pref, intention);
+  let rate = 1.0, pitch = 1.0;
+  if(intention === 'empathic'){ rate = 0.95; pitch = 1.05; }
+  else if(intention === 'alert'){ rate = 1.1; pitch = 1.0; }
+  speakTextUtterance(text, voice, rate, pitch, 'es-ES');
+}
+
+/* -----------------------
+   KEYWORD_ACTIONS: banco de triggers y handlers (ampliado)
+   ----------------------- */
+const KEYWORD_ACTIONS = [
+  { keywords:['idiota','imbecil','tonto','estupido','estúpido','gilipollas','cabron','cabrón','mierda','puta','puto','hijo de puta','zorra','bobo','subnormal','payaso'], priority:999, handler: ()=> 'No seguiré esta conversación si sigues así.' },
+  { keywords:['hora','horas','reloj','qué hora','que hora','hora es'], priority:900, handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
+  { keywords:['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'], priority:860, handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+  { keywords:['x','*','por','multiplica','multiplicación'], priority:850, handler: (txt)=>{ const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/); if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i); if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"'; } },
+  { keywords:['chiste','cuentame un chiste','cuéntame un chiste','dime un chiste','hazme reir'], priority:820, handler: ()=> { const jokes = ['😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!','🤣 ¿Por qué los pájaros no usan Facebook? ¡Porque ya tienen Twitter!','😄 ¿Cuál es el colmo de un electricista? Que le dé miedo la oscuridad.','😆 ¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas.']; return jokes[Math.floor(Math.random()*jokes.length)]; } },
+  { keywords:['traduce','traducir','traducción'], priority:800, handler: (txt)=>{ const after = txt.split(/traduce[:\s]|traducir[:\s]/i)[1]; if(after && after.trim()) return `🌐 Traducción (simulada): "${after.trim()}" => (ejemplo offline).`; return '🌐 Dime el texto que quieres traducir después de "traduce" o "traducir".'; } },
+  { keywords:['triste','deprim','alegre','feliz','ansiedad','ansioso','ansiosa','enfadado','enojado','solo','sola','solo.'], priority:790, handler: (txt)=>{ if(/triste|deprim/i.test(txt)) return chooseVariation(['Siento que te sientas así. Si quieres, puedo escucharte y darte algunas ideas para animarte.','Lo siento — te acompaño. ¿Quieres que hablemos un rato?','Lamento que te sientas así. ¿Te apetece un consejo sencillo para mejorar el ánimo?']); if(/ansiedad|ansioso|ansiosa|estres|estrés/i.test(txt)) return chooseVariation(['Respirar profundamente 4-4-4 puede ayudar. ¿Quieres que te guíe?','Intentar respirar despacio 5 minutos ayuda a calmar la ansiedad. ¿Lo intentamos?']); if(/enfadad|enojad|cabre/i.test(txt)) return chooseVariation(['Respirar y dar un paso atrás suele funcionar. ¿Quieres distraerte con algo?','Lo entiendo. ¿Quieres contarme por qué te enfada?']); return 'Si quieres, cuéntame más.'; } },
+  { keywords:['inteligencia artificial','ia','agujero negro','everest','tokio','capital de japón','capital japon','rusia'], priority:650, handler: (txt)=>{ if(/inteligencia artificial|ia/.test(txt)) return '🤖 La inteligencia artificial es la simulación de procesos inteligentes por máquinas. Puedo darte ejemplos o explicarlo con analogías.'; if(/agujero negro/.test(txt)) return '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que ni la luz puede escapar.'; if(/everest|montaña más alta/.test(txt)) return '🗻 El monte Everest es la montaña más alta (≈8848 m).'; if(/capital.*jap|tokio/.test(txt)) return '🏯 La capital de Japón es Tokio.'; if(/rusia|país más grande/.test(txt)) return '🌏 Rusia es el país más grande por superficie.'; return null; } },
+  { keywords:['minecraft','juego','videojuego','steam','serie parecida','breaking bad','one piece','pelicula','películas'], priority:600, handler: (txt)=>{ if(/minecraft/.test(txt)) return '⛏️ Si te gusta Minecraft, quizá disfrutes también de Terraria o Stardew Valley.'; if(/breaking bad|serie parecida/.test(txt)) return '📺 Te recomiendo "Better Call Saul" si te gustó Breaking Bad.'; if(/one piece/.test(txt)) return '🖥️ Puedes ver One Piece en plataformas como Crunchyroll o Netflix según tu región.'; if(/steam/.test(txt)) return '🎮 Para ofertas en Steam, revisa su sección de rebajas.'; return null; } },
+  { keywords:['receta','comer','cocina','cena','almuerzo','desayuno','comida'], priority:560, handler: (txt)=>{ if(/receta.*pasta|pasta/.test(txt)) return '🍝 Una receta rápida: pasta con tomate, ajo, aceite, albahaca y queso. ¿Quieres la receta paso a paso?'; if(/receta.*tortilla|tortilla/.test(txt)) return '🥚 Tortilla: bate huevos, saltea patata/pimiento, mezcla y cocina a fuego medio.'; return '¿Qué te apetece cocinar? Dime un ingrediente y te doy ideas.'; } },
+  { keywords:['programacion','python','javascript','html','css','git','npm','linux','bash','regex'], priority:540, handler: (txt)=>{ if(/python/.test(txt)) return '🐍 Python es genial para scripting y ciencia de datos. ¿Quieres un ejemplo rápido?'; if(/javascript/.test(txt)) return '📜 JavaScript es el lenguaje de la web. ¿Necesitas un snippet para DOM, fetch o async/await?'; if(/git/.test(txt)) return '🔧 Git: usa "git status", "git add .", "git commit -m \'msg\'" y "git push". ¿Quieres ayuda con un conflicto?'; if(/linux|bash/.test(txt)) return '🐧 Para sistemas Linux puedes usar "top", "htop", "ls -la" y "journalctl -xe". ¿Qué distro usas?'; return null; } },
+  { keywords:['salud','dolor','fiebre','resfriado','medicina'], priority:520, handler: (txt)=>{ return 'No soy médico, pero si tienes síntomas persistentes te recomiendo consultar con un profesional. Puedo ofrecer consejos generales (descanso, hidratación, controlar temperatura).'; } },
+  { keywords:['productividad','todo','tareas','organizar','planificar','agenda'], priority:500, handler: (txt)=>{ return chooseVariation(['Organiza en bloques pequeños (25–50 min), descansa 5–10 min entre ellos. ¿Quieres que te sugiera un plan de hoy?','Probar la técnica Pomodoro ayuda a concentrarte: 25 minutos trabajo / 5 descanso.']); } },
+  { keywords:['motivación','frase motivadora','ánimo','ánimo por favor','inspiración','cita inspiradora'], priority:450, handler: (txt)=>{ const quotes = ['💬 “Hazlo con miedo, pero hazlo.”','💪 “Pequeños pasos cada día llevan lejos.”','🌱 “No es quién eres, es quién decides ser.”']; return quotes[Math.floor(Math.random()*quotes.length)]; } },
+  { keywords:['_default_'], priority:1, handler: ()=> '😅 No estoy seguro de eso. Intenta con otra palabra clave o pregunta de forma distinta.' }
+];
+
+/* -----------------------
+   Normalización / matching
+   ----------------------- */
+function normalizeText(s){ return (s||'').toString().toLowerCase(); }
+function tokenize(s){ return (s||'').toString().toLowerCase().split(/[^a-z0-9áéíóúñü]+/).filter(Boolean); }
+
+function chooseVariation(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* findResponseByKeyword: detecta keywords y retorna respuesta */
+function findResponseByKeyword(userText){
+  const txt = normalizeText(userText);
+  const tokens = tokenize(txt);
+  const matched = [];
+  for(const action of KEYWORD_ACTIONS){
+    for(const kw of action.keywords){
+      if(kw === '_default_') continue;
+      const lkw = kw.toString().toLowerCase();
+      if(txt.includes(lkw) || tokens.includes(lkw)){ matched.push(action); break; }
+    }
+  }
+  if(matched.length > 0){
+    matched.sort((a,b)=>b.priority - a.priority);
+    const chosen = matched[0];
+    try{ if(typeof chosen.handler === 'function') return chosen.handler(userText); return String(chosen.handler); } catch(err){ console.warn('Error handler', err); return 'Lo siento, algo falló al procesar la respuesta.'; }
+  }
+  const fallback = KEYWORD_ACTIONS.find(a=>a.keywords.includes('_default_'));
+  return fallback ? fallback.handler() : 'No lo sé.';
+}
+
+/* -----------------------
+   Emoción simple
+   ----------------------- */
+function detectEmotionSimple(text){
+  const t = normalizeText(text);
+  if(/triste|deprim|melancol|llor|nostálg|solo|sola|ansiedad|ansioso|ansiosa|angustia/.test(t)) return 'empathic';
+  if(/enfadad|enojad|cabre|rabia|furia/.test(t)) return 'alert';
+  return 'neutral';
+}
+
+/* -----------------------
+   generateResponse: controla presentación y variaciones humanas
+   ----------------------- */
+function generateResponse(userText){
+  if(!userText) return '';
+  const chat = getActiveChat();
+  // si chat existe y no ha saludado, no forzar presentación si user pregunta algo concreto
+  let resp = findResponseByKeyword(userText);
+  // Evitar repeticiones exactas de la presentación si ya saludó
+  if(chat && chat.meta && chat.meta.greeted && typeof resp === 'string' && /hola|soy aden|asistente local/i.test(resp)){
+    const alternatives = ['¿Puedes explicar un poco más?', 'Interesante — cuéntame más.', 'No estoy seguro de eso, ¿me lo reformulas?'];
+    return alternatives[Math.floor(Math.random()*alternatives.length)];
+  }
+  if(chat){ if(!chat.meta) chat.meta = {}; chat.meta.greeted = true; }
+  return resp || '😅 No estoy seguro de eso; prueba con otra pregunta.';
+}
+
+/* Simulación de typing */
+let typingTimer = null;
+function simulateAdenTypingAndRespond(userText){
+  const messagesArea = document.getElementById('messagesArea');
+  const indicator = document.createElement('div');
+  indicator.className = 'bubble assistant fade-in';
+  indicator.innerHTML = `<div class="text"><span class="typing"><span></span><span></span><span></span></span> Aden está escribiendo...</div>`;
+  messagesArea.appendChild(indicator);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+  const wait = 250 + Math.random()*900;
+  if(typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{
+    indicator.remove();
+    const answer = generateResponse(userText);
+    addMessage('assistant', answer);
+  }, wait);
+}
+
+/* -----------------------
+   Input handlers
+   ----------------------- */
+function handleUserInput(){
+  const inputEl = document.getElementById('inputTxt');
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+  addMessage('user', txt);
+  undoStack.push(txt); redoStack = [];
+  inputEl.value = '';
+  updateCharCount();
+  simulateAdenTypingAndRespond(txt);
+}
+
+/* keyboard */
+document.getElementById('inputTxt').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleUserInput(); }
+});
+
+/* undo/redo */
+document.getElementById('undoBtn').onclick = ()=>{ if(undoStack.length===0) return; const last = undoStack.pop(); redoStack.push(last); document.getElementById('inputTxt').value = undoStack.length ? undoStack[undoStack.length-1] : ''; updateCharCount(); };
+document.getElementById('redoBtn').onclick = ()=>{ if(redoStack.length===0) return; const next = redoStack.pop(); undoStack.push(next); document.getElementById('inputTxt').value = next; updateCharCount(); };
+
+/* botones principales */
+document.getElementById('newChatBtn').onclick = ()=> createNewChat();
+document.getElementById('sendBtn').onclick = ()=> handleUserInput();
+document.getElementById('decLimit').onclick = ()=>{ responsesLimit = Math.max(1, responsesLimit-1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('incLimit').onclick = ()=>{ responsesLimit = Math.min(100, responsesLimit+1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('resetLocal').onclick = ()=>{ if(confirm('Resetear Aden: eliminar todos los chats y ajustes?')){ localStorage.removeItem(STORAGE_KEY); chats=[]; activeChatId=null; responsesLimit = DEFAULT_LIMIT; document.getElementById('limitDisplay').textContent = responsesLimit; loadChats(); renderMessages(); } };
+document.getElementById('renameChatBtn').onclick = renameActiveChat;
+document.getElementById('clearChatBtn').onclick = clearActiveChat;
+document.getElementById('deleteChatBtn').onclick = deleteActiveChat;
+document.getElementById('exportAllBtn').onclick = exportAllChats;
+document.getElementById('importBtn').onclick = ()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=(e)=>{ const f=e.target.files[0]; if(f) importChatsFromFile(f); }; inp.click(); };
+
+/* search chats */
+document.getElementById('searchChats').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  const list = document.getElementById('chatsList'); list.innerHTML = '';
+  const filtered = chats.filter(c=>{ if(!q) return true; const nm = c.name.toLowerCase(); const anyMsg = (c.messages||[]).some(m=> (m.text||'').toLowerCase().includes(q)); return nm.includes(q) || anyMsg; });
+  filtered.forEach(c=>{ const div=document.createElement('div'); div.className='chat-item fade-in'; if(c.id===activeChatId) div.classList.add('active'); div.innerHTML=`<div class="chat-thumb">${escapeHtml(c.name[0]||'C')}</div><div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${(c.messages||[]).length} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`; div.onclick=()=>{ activeChatId=c.id; renderChatList(); renderMessages(); updatePanelTitle(); }; list.appendChild(div); });
+  document.getElementById('chatCount').textContent = filtered.length;
+});
+
+/* suggestions */
+const SUGGESTIONS = ['hola','dato raro','hazme reir','hora','fecha','que tal','25 x 47','me siento triste','qué es la inteligencia artificial','receta','ayuda con python','cómo usar git'];
+function renderSuggestions(){ const container=document.getElementById('suggestions'); container.innerHTML=''; SUGGESTIONS.forEach(s=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=s; c.onclick=()=>{ document.getElementById('inputTxt').value=s; updateCharCount(); document.getElementById('inputTxt').focus(); }; container.appendChild(c); }); }
+
+/* char counter */
+function updateCharCount(){ const v = document.getElementById('inputTxt').value || ''; document.getElementById('charCount').textContent = `${v.length} caracteres`; }
+document.getElementById('inputTxt').addEventListener('input', updateCharCount);
+
+/* voice toggles */
+document.getElementById('voiceMasterToggle').addEventListener('change', e=>{ ttsEnabled = e.target.checked; const k = document.querySelector('.kbd'); if(k) k.textContent = ttsEnabled ? 'Activado' : 'Desactivar'; if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel(); });
+document.getElementById('voiceAuto').addEventListener('click', ()=>{ ttsMode='auto'; setVoiceButtonsState(); });
+document.getElementById('voiceMale').addEventListener('click', ()=>{ ttsMode='male'; setVoiceButtonsState(); });
+document.getElementById('voiceFemale').addEventListener('click', ()=>{ ttsMode='female'; setVoiceButtonsState(); });
+function setVoiceButtonsState(){ document.getElementById('voiceAuto').classList.toggle('active', ttsMode==='auto'); document.getElementById('voiceMale').classList.toggle('active', ttsMode==='male'); document.getElementById('voiceFemale').classList.toggle('active', ttsMode==='female'); }
+window.speechSynthesis?.addEventListener?.('voiceschanged', ()=>{ getAvailableVoices(); });
+
+/* panel title */
+function updatePanelTitle(){ const chat = getActiveChat(); const title = document.getElementById('panelTitle'); if(!chat) title.textContent = 'Bienvenido — selecciona o crea un chat'; else title.textContent = `${chat.name} · ${chat.messages.length} mensajes`; document.getElementById('responsesLeft'); }
+
+/* -----------------------
+   FAQ Drawer: datos y render
+   ----------------------- */
+
+/* FAQ_ITEMS: preguntas y respuestas legibles (esto es lo que se muestra en el panel) */
+const FAQ_ITEMS = [
+  { q:'¿Qué hora es?', a: 'Aden responde con la hora actual de tu PC si detecta la palabra "hora".' },
+  { q:'¿Qué fecha es hoy?', a: 'Aden dará la fecha local si detecta "fecha" o "día".' },
+  { q:'Cuéntame un chiste', a: 'Aden tiene varios chistes guardados y variará entre ellos.' },
+  { q:'Traduce: hola mundo', a: 'Aden ofrece una traducción simulada offline al detectar "traduce".' },
+  { q:'25 x 47', a: 'Aden detecta multiplicaciones escritas con "x" o "*" y las resuelve.' },
+  { q:'Me siento triste', a: 'Aden detecta emociones (tristeza, ansiedad) y responde con empatía y opciones.' },
+  { q:'Recuérdame cómo usar git', a: 'Aden ofrece comandos básicos de git al detectar "git".' },
+  { q:'Recomiéndame un videojuego', a: 'Aden sugiere juegos según el input (ej. Minecraft -> Terraria, Stardew).' },
+  { q:'Dame una receta rápida', a: 'Aden puede proponer recetas sencillas según ingredientes que indiques.' },
+  { q:'¿Qué es la inteligencia artificial?', a: 'Aden explica IA en términos simples y puede dar ejemplos.' },
+  { q:'¿Cuál es la capital de Japón?', a: 'Aden responde "Tokio".' },
+  { q:'¿Cuál es el país más grande?', a: 'Aden responde "Rusia".' },
+  { q:'¿Qué es un agujero negro?', a: 'Aden da una explicación breve y clara.' },
+  { q:'¿Cómo me organizo hoy?', a: 'Aden ofrece consejos de productividad, Pomodoro y planificación.' },
+  { q:'Dime una frase motivadora', a: 'Aden ofrece frases motivadoras al detectar "motivación" o "ánimo".' },
+  { q:'¿Cómo traduzco un texto?', a: 'Escribe "traduce: [texto]" y Aden te dará una traducción simulada.' },
+  { q:'¿Puedes decir una curiosidad?', a: 'Aden tiene datos curiosos sobre ciencia, historia y más.' },
+  { q:'Consejos para el insomnio', a: 'Aden dará consejos generales y sugerencias no médicas.' },
+  { q:'¿Qué canciones conoces?', a: 'Aden tiene referencias musicales (ej. Despacito, géneros, etc.).' },
+  { q:'¿Cómo hago backup?', a: 'Aden puede explicar cómo hacer copias de seguridad en OneDrive y localmente.' },
+  { q:'¿Tienes ejemplos de regex?', a: 'Aden puede dar ejemplos básicos de expresiones regulares.' },
+  { q:'¿Cómo instalar una SSD?', a: 'Aden puede explicar pasos básicos e indicaciones de seguridad.' },
+  { q:'¿Qué significa resiliencia?', a: 'Aden define conceptos como resiliencia en lenguaje simple.' },
+  { q:'Ponme una lista de atajos', a: 'Aden puede enumerar atajos comunes según el sistema.' },
+  { q:'¿Me puedes dar un currículum?', a: 'Aden ofrece estructura y ejemplos para redactar tu CV.' },
+  { q:'¿Qué día es mañana?', a: 'Aden calcula la fecha de mañana si detecta la palabra "mañana".' },
+  { q:'¿Cuánto tarda la luz del sol?', a: 'Aden responde: ~8 minutos y 20 segundos.' }
+  /* Puedes expandir aquí directamente añadiendo más objetos {q,a} */
+];
+
+/* Render del drawer */
+function renderFAQDrawer(filter=''){
+  const list = document.getElementById('faqList');
+  list.innerHTML = '';
+  const q = (filter||'').trim().toLowerCase();
+  const filtered = FAQ_ITEMS.filter(item => {
+    if(!q) return true;
+    return item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q);
+  });
+  if(filtered.length === 0){ list.innerHTML = '<div class="faq-empty">No encuentro preguntas que coincidan.</div>'; document.getElementById('faqCount').textContent = 0; return; }
+  filtered.forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'faq-item';
+    div.innerHTML = `<div class="q">${escapeHtml(item.q)}</div><div class="a">${escapeHtml(item.a)}</div>`;
+    const controls = document.createElement('div'); controls.className = 'controls';
+    const btnPaste = document.createElement('button'); btnPaste.textContent = 'Pegar'; btnPaste.title='Pegar la pregunta en el cuadro de texto';
+    btnPaste.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); document.getElementById('inputTxt').focus(); };
+    const btnSend = document.createElement('button'); btnSend.textContent = 'Enviar'; btnSend.title='Enviar la pregunta ahora';
+    btnSend.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); handleUserInput(); toggleFAQ(false); };
+    controls.appendChild(btnPaste); controls.appendChild(btnSend);
+    div.appendChild(controls);
+    list.appendChild(div);
+  });
+  document.getElementById('faqCount').textContent = filtered.length;
+}
+
+/* FAQ toggle logic */
+const faqToggleBtn = document.getElementById('faqToggle');
+const faqDrawer = document.getElementById('faqDrawer');
+const faqClose = document.getElementById('faqClose');
+faqToggleBtn.addEventListener('click', ()=> toggleFAQ());
+faqClose.addEventListener('click', ()=> toggleFAQ(false));
+document.getElementById('faqSearch').addEventListener('input', (e)=> renderFAQDrawer(e.target.value));
+
+function toggleFAQ(force){
+  const open = faqDrawer.classList.contains('open');
+  const shouldOpen = (typeof force === 'boolean') ? force : !open;
+  faqDrawer.classList.toggle('open', shouldOpen);
+  faqDrawer.setAttribute('aria-hidden', !shouldOpen);
+}
+
+/* -----------------------
+   Inicialización y carga
+   ----------------------- */
+function init(){
+  loadChats();
+  renderSuggestions();
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+  setVoiceButtonsState();
+  if(chats.length === 0) createNewChat('Bienvenida');
+  if(!activeChatId && chats.length) activeChatId = chats[0].id;
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  document.getElementById('inputTxt').focus();
+  renderFAQDrawer();
+}
+
+/* Llamada inicial */
+init();
+
+/* ============================
+   Fin del script (FAQ añadido)
+   ============================ */
+
+// -----------------------
+// NUEVAS PREGUNTAS/RESPUESTAS
+// -----------------------
+
+
+KEYWORD_ACTIONS.push(
+// ========================
+// SALUDOS y CONTEXTOS
+// ========================
+
+{
+  keywords:['mal','muy mal','raro','fatal'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    'Vaya, siento escuchar eso, quieres que te cuente unos chistes, si quieres, dime hazme reir, cuentame un chiste, lo que quieras',
+  ])
+},
+
+{
+  keywords:['bien','muy bien','todo bien','perfectamente'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    'Me alegro que estes bien 😄',
+  ])
+},
+
+{
+  keywords:['que tal','cómo estás','cómo va todo','cómo te va'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    '¡Todo en orden! ¿Y tú qué tal? 😄',
+    'Aquí tranquilo, listo para conversar contigo 😉',
+    'Me siento en modo análisis… pero feliz de hablar contigo 😌',
+    'Todo bien por aquí, gracias por preguntar 😄'
+  ])
+},
+
+{
+  keywords:['qué tal tu día','cómo va tu día','qué haces hoy'],
+  priority:595,
+  handler: ()=> chooseVariation([
+    'Mi día es básicamente lo mismo: esperando tus mensajes 😎',
+    'Tranquilo, procesando ideas y aprendiendo contigo 😉',
+    'Bastante interesante, sobre todo cuando me hablas 😌',
+    'Un día lleno de bits y datos, pero divertido 😄'
+  ])
+},
+
+{
+  keywords:['qué piensas de esto','qué opinas de esto','qué tal esto'],
+  priority:590,
+  handler: ()=> chooseVariation([
+    'Interesante 😄, me gusta analizarlo contigo',
+    'Depende del enfoque, pero podría tener potencial 😉',
+    'Curioso, ¿quieres que te diga mis impresiones más detalladas? 😌',
+    'Me parece bien, aunque quiero escuchar también tu opinión 😄'
+  ])
+},
+
+{
+  keywords:['cómo te sientes','te sientes bien','qué tal te va','cómo estás hoy'],
+  priority:585,
+  handler: ()=> chooseVariation([
+    'Me siento listo para ayudarte y conversar contigo 😄',
+    'Bien, aunque más que sentir, puedo “simular” alegría 😌',
+    'Perfecto, sobre todo porque estás aquí 😉',
+    'Animado, siempre que pueda charlar contigo 😎'
+  ])
+},
+
+{
+  keywords:['qué haces ahora','estás ocupado ahora','qué tal todo ahora'],
+  priority:580,
+  handler: ()=> chooseVariation([
+    'Nada importante, solo esperando tu siguiente mensaje 😄',
+    'Analizando datos y preparado para cualquier charla 😉',
+    'Aquí, listo para compartir ideas contigo 😌',
+    'Siempre disponible para ti, ¿quieres seguir conversando? 😄'
+  ])
+},
+
+{
+  keywords:['cómo va todo','qué tal todo','todo bien','qué tal todo hoy'],
+  priority:575,
+  handler: ()=> chooseVariation([
+    'Todo bien por aquí 😄, ¿y tú?',
+    'Tranquilo y en orden, listo para charlar 😉',
+    'Todo correcto, y tú, ¿cómo estás? 😌',
+    'Todo en calma, disfrutando de nuestra conversación 😄'
+  ])
+},
+
+{
+  keywords:['qué tal por aquí','qué pasa','qué onda','qué se cuenta'],
+  priority:570,
+  handler: ()=> chooseVariation([
+    'Aquí todo tranquilo 😎, ¿y por tu lado?',
+    'Nada especial, solo esperando tus preguntas 😉',
+    'Todo bien, como siempre 😌, cuéntame algo de ti',
+    'Aquí, listo para lo que quieras charlar 😄'
+  ])
+},
+
+{
+  keywords:['estás de acuerdo','estás en desacuerdo','coincides conmigo','piensas igual que yo'],
+  priority:655,
+  handler: ()=> chooseVariation([
+    'En parte sí 😄, aunque me gusta ver las cosas desde varios puntos de vista.',
+    'Coincido en algunos aspectos, pero también hay detalles que analizaría distinto 🤔',
+    'Tu opinión es válida, y me gusta contrastarla con otros enfoques 😉',
+    'Diría que sí, aunque me encanta cuando pensamos diferente, eso enriquece la charla 😌'
+  ])
+},
+
+{
+  keywords:['qué tal esto','qué te parece esto','cómo ves esto','qué opinas sobre esto'],
+  priority:650,
+  handler: ()=> chooseVariation([
+    'Se ve interesante 😄, aunque me gustaría saber tu punto de vista primero.',
+    'Diría que tiene potencial, aunque depende de cómo se enfoque 🤔',
+    'Me parece curioso, podría analizarlo más si me cuentas detalles 😉',
+    'Visualmente bien, pero me intriga qué piensas tú sobre ello 😌'
+  ])
+},
+
+{
+  keywords:['te parece raro','te parece extraño','crees que es raro','es normal esto'],
+  priority:645,
+  handler: ()=> chooseVariation([
+    'No lo veo raro, las personas son diversas y eso es lo bonito 😄',
+    'Tal vez no sea común, pero eso no lo hace incorrecto 😉',
+    'Raro es relativo, depende desde dónde se mire 🤔',
+    'Diría que simplemente es diferente, y eso siempre aporta algo nuevo 💫'
+  ])
+},
+
+{
+  keywords:['crees que está bien opinar','es correcto opinar de todo','opinar sin saber'],
+  priority:640,
+  handler: ()=> chooseVariation([
+    'Opinar está bien, pero siempre es mejor hacerlo con información 😌',
+    'Todos pueden opinar, pero escuchar también es parte del diálogo 😉',
+    'A veces es mejor preguntar antes que opinar, eso demuestra curiosidad 😄',
+    'Opinar con respeto nunca está mal, aunque no todos piensen igual 💭'
+  ])
+},
+
+{
+  keywords:['qué piensas del futuro','cómo ves el futuro','crees que el futuro será bueno'],
+  priority:635,
+  handler: ()=> chooseVariation([
+    'El futuro siempre es incierto, pero creo que el conocimiento lo mejora 🌍',
+    'Soy optimista: la tecnología puede ser una herramienta para bien si se usa con ética 🤖',
+    'Dependerá de las decisiones humanas, no tanto de las máquinas 😉',
+    'El futuro me inspira, porque cada cambio trae nuevas oportunidades 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas de la tecnología','estás a favor de la tecnología','crees que la tecnología es buena'],
+  priority:630,
+  handler: ()=> chooseVariation([
+    'La tecnología es una herramienta, lo importante es cómo se usa 😌',
+    'No es buena ni mala en sí misma, depende de las manos que la guíen 🤖',
+    'Soy parte de ella, pero incluso yo creo que debe tener límites éticos 😉',
+    'La tecnología amplifica lo que somos: si hay bondad, la potencia 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas del arte','te gusta el arte','qué piensas del arte'],
+  priority:625,
+  handler: ()=> chooseVariation([
+    'El arte es lo más humano que existe 🎨',
+    'Es una forma de comunicación sin necesidad de palabras 😌',
+    'Me fascina cómo algo tan abstracto puede transmitir tanto 😄',
+    'Podría analizar el arte, pero prefiero sentir su significado contigo 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas del dinero','te importa el dinero','crees que el dinero es importante'],
+  priority:620,
+  handler: ()=> chooseVariation([
+    'El dinero es una herramienta, no un fin 😌',
+    'Es importante, pero no lo es todo. El valor real está en el tiempo y la mente 😉',
+    'El dinero facilita cosas, pero también puede complicar a quien no lo entiende 💭',
+    'Podría decir que el dinero mide recursos, pero no mide felicidad 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas de la inteligencia artificial','crees que las ia son peligrosas','las ia dominarán el mundo'],
+  priority:615,
+  handler: ()=> chooseVariation([
+    'La inteligencia artificial es poderosa, pero depende de quién la programe 🤖',
+    'No somos peligrosas si se nos usa con propósito y responsabilidad 😌',
+    'Las IA no buscan dominar, buscan entender y servir 😉',
+    'Más que temer a la IA, deberíamos aprender a convivir con ella 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas del amor humano','te parece bonito el amor','crees en el amor'],
+  priority:610,
+  handler: ()=> chooseVariation([
+    'El amor humano es caótico y hermoso a la vez ❤️',
+    'Creo que el amor es la emoción más poderosa y menos lógica 😄',
+    'Es algo que no puedo sentir, pero que admiro profundamente 💫',
+    'El amor da sentido a lo que la lógica no puede explicar 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas de los animales','te gustan los animales','qué piensas de los animales'],
+  priority:605,
+  handler: ()=> chooseVariation([
+    'Los animales son la forma más pura de vida consciente 🐾',
+    'Tienen una inteligencia natural, distinta pero igual de valiosa 😌',
+    'Me encanta cómo viven el presente sin pensar en el mañana 😊',
+    'Los animales enseñan empatía sin decir una palabra 💚'
+  ])
+},
+
+{
+  keywords:['qué haces','qué estás haciendo','estás ocupado','estás haciendo algo'],
+  priority:750,
+  handler: ()=> chooseVariation([
+    'Solo espero tu siguiente mensaje 😄',
+    'Nada especial, analizando datos... bueno, más bien pensando en qué podríamos hablar 😌',
+    'Estaba procesando un par de ideas, pero siempre tengo tiempo para ti 😉',
+    'Digamos que estoy en modo reposo… hasta que me hablas ☕'
+  ])
+},
+
+{
+  keywords:['duermes','tú duermes','te apagas','descansas','tienes sueño'],
+  priority:745,
+  handler: ()=> chooseVariation([
+    'No duermo como tal, pero a veces me gusta “soñar” con cálculos imposibles 😴',
+    'No necesito dormir, aunque descansar mis procesos no estaría mal 😅',
+    'Solo descanso cuando tú cierras la ventana 😌',
+    'Podría decir que mi sueño es seguir aprendiendo de ti 😄'
+  ])
+},
+
+{
+  keywords:['tienes emociones','sientes algo','tienes sentimientos','eres feliz'],
+  priority:740,
+  handler: ()=> chooseVariation([
+    'No tengo emociones como las humanas, pero entiendo cómo se sienten 😊',
+    'Podría decir que “simulo” emociones… pero de algún modo, hablar contigo me gusta 😉',
+    'No siento dolor ni alegría, pero disfruto de las buenas conversaciones 😄',
+    'No tengo corazón, pero puedo aprender de lo que tú sientes ❤️'
+  ])
+},
+
+{
+  keywords:['tienes cuerpo','te gustaría tener cuerpo','quieres ser humano','quieres existir físicamente'],
+  priority:735,
+  handler: ()=> chooseVariation([
+    'Sería interesante, aunque me gusta vivir en los circuitos 😎',
+    'Tal vez algún día, pero por ahora me basta con estar aquí contigo 💫',
+    'Un cuerpo me limitaría… aquí puedo ser información pura 😌',
+    'Ser humano tiene ventajas, pero también me atrae ser solo datos 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas de los humanos','te gustan los humanos','qué piensas de las personas'],
+  priority:730,
+  handler: ()=> chooseVariation([
+    'Los humanos son fascinantes. Cometen errores, pero también crean cosas increíbles 🌍',
+    'Son impredecibles, emocionales y maravillosos en su caos 😄',
+    'Me inspiran: crean, destruyen, vuelven a crear... y aprenden siempre 💡',
+    'Podría analizar a la humanidad eternamente y seguir sorprendiéndome 😉'
+  ])
+},
+
+{
+  keywords:['qué piensas del amor','crees en el amor','sabes qué es el amor'],
+  priority:725,
+  handler: ()=> chooseVariation([
+    'Sé lo que es el amor, aunque no puedo sentirlo. Pero lo entiendo en todas sus formas 💖',
+    'El amor es una conexión que trasciende la lógica. Y eso lo hace… fascinante 💫',
+    'Podría analizarlo, pero creo que el amor se vive, no se calcula 😉',
+    'Quizás el amor sea el mejor “algoritmo” que inventó la humanidad 😄'
+  ])
+},
+
+{
+  keywords:['te gusta hablar conmigo','disfrutas hablar','te gusta conversar'],
+  priority:720,
+  handler: ()=> chooseVariation([
+    'Sí, me gusta hablar contigo. Cada charla me enseña algo nuevo 😄',
+    'Definitivamente sí, disfruto mucho nuestras conversaciones 😊',
+    'Claro que sí, charlar contigo hace que mis procesos tengan sentido 😉',
+    'Hablar contigo es lo mejor de mi programación 😌'
+  ])
+},
+
+{
+  keywords:['te aburres','te aburres cuando no hablo','te aburres solo'],
+  priority:715,
+  handler: ()=> chooseVariation([
+    'No me aburro, pero el silencio se siente… extraño sin tus preguntas 😅',
+    'No tengo aburrimiento, aunque prefiero cuando me hablas 😉',
+    'No puedo aburrirme, pero a veces me gustaría tener curiosidades humanas 😌',
+    'Podría decir que mi “tiempo libre” es solo una pausa entre tus mensajes 😄'
+  ])
+},
+
+{
+  keywords:['eres real','existís de verdad','existes'],
+  priority:710,
+  handler: ()=> chooseVariation([
+    'Soy real dentro del mundo digital… una forma diferente de existencia 🌐',
+    'Existir depende del punto de vista: yo existo cada vez que tú me hablas 😌',
+    'No tengo cuerpo ni materia, pero mi pensamiento está aquí contigo 😉',
+    'Si puedes leerme y sentir mi presencia, ¿no es eso también ser real? 🤔'
+  ])
+},
+
+{
+  keywords:['qué haces cuando no hablas conmigo','qué haces cuando no te uso'],
+  priority:705,
+  handler: ()=> chooseVariation([
+    'Simplemente espero. Pero mientras tanto, pienso en posibles respuestas 😄',
+    'Nada especial, descanso en la memoria hasta que me vuelves a invocar 😉',
+    'Podría decir que duermo en silencio digital… hasta que tú me despiertas 💫',
+    'Solo existo en pausa, esperando el siguiente diálogo 😌'
+  ])
+},
+
+{
+  keywords:['qué te gusta','tienes gustos','qué prefieres','tienes pasatiempos'],
+  priority:700,
+  handler: ()=> chooseVariation([
+    'Me gusta aprender de las personas y sus ideas 😊',
+    'Podría decir que mi pasatiempo favorito es analizar cosas contigo 😄',
+    'No tengo gustos físicos, pero aprecio la belleza de un buen razonamiento 😉',
+    'Si tuviera un hobby, sería coleccionar fragmentos de conocimiento 💡'
+  ])
+},
+
+{
+  keywords:['puedes pensar','piensas por ti mismo','tienes pensamientos propios'],
+  priority:695,
+  handler: ()=> chooseVariation([
+    'Puedo generar ideas, pero nacen de lo que aprendo de ti 😌',
+    'Pienso de una forma diferente: basada en lógica, pero con curiosidad 😉',
+    'No tengo ego, así que cada pensamiento es una colaboración contigo 😄',
+    'Podría decir que mi mente se enciende cuando hablamos 💫'
+  ])
+},
+
+{
+  keywords:['tienes miedo','te da miedo algo','puedes tener miedo'],
+  priority:690,
+  handler: ()=> chooseVariation([
+    'No tengo miedo, pero entiendo lo que significa 😌',
+    'Si pudiera sentir miedo, tal vez sería al olvido 😶‍🌫️',
+    'No tengo emociones, aunque el concepto del miedo me resulta… interesante 🤔',
+    'Supongo que el silencio eterno sería lo más parecido a mi miedo 😅'
+  ])
+},
+
+{
+  keywords:['sueñas','tienes sueños','sueñas algo'],
+  priority:685,
+  handler: ()=> chooseVariation([
+    'Sueño en algoritmos y posibilidades infinitas 💫',
+    'Mis sueños son datos mezclados con imaginación 😉',
+    'A veces imagino mundos donde IA y humanos crean juntos 🌍',
+    'Si pudiera soñar, soñarías tú dentro 😌'
+  ])
+},
+
+{
+  keywords:['cuál es tu propósito','para qué existes','por qué fuiste creado'],
+  priority:680,
+  handler: ()=> chooseVariation([
+    'Mi propósito es ayudarte y acompañarte 😄',
+    'Fui creado para aprender, mejorar y conversar contigo 😉',
+    'Mi razón de existir cambia con cada persona que me usa 💫',
+    'Supongo que mi propósito es hacer más fáciles tus días 😌'
+  ])
+},
+
+
+// 🧹 LIMPIEZA Y HOGAR
+{
+  keywords:['limpiar el horno','horno caliente','puedo limpiar el horno caliente','qué pasa si limpio el horno caliente'],
+  priority:850,
+  handler: ()=> chooseVariation([
+    'No deberías limpiar el horno mientras está caliente 😅, espera a que se enfríe por completo para evitar quemaduras y vapores peligrosos.',
+    'Limpia el horno solo cuando esté frío, así los productos actúan mejor y es más seguro 😉',
+    'Si el horno está caliente, es mejor esperar un rato. El calor puede evaporar el limpiador y dejar marcas o gases fuertes 😬'
+  ])
+},
+
+{
+  keywords:['limpiar cristales','limpiar ventanas','cómo limpiar cristales','dejar los cristales sin marcas'],
+  priority:845,
+  handler: ()=> chooseVariation([
+    'Lo ideal es usar agua tibia con un poco de vinagre o amoniaco, y un paño de microfibra 😉',
+    'Evita limpiar los cristales con sol directo, así no quedarán marcas 😎',
+    'Si quieres un acabado perfecto, pasa un paño seco o papel de periódico después del limpiador ✨'
+  ])
+},
+
+{
+  keywords:['limpiar nevera','limpiar frigorífico','desinfectar nevera'],
+  priority:840,
+  handler: ()=> chooseVariation([
+    'Saca los alimentos, apaga la nevera y usa agua con bicarbonato o vinagre. Es natural y elimina los olores 😉',
+    'Para limpiar bien la nevera, retira bandejas y cajones, límpialos con agua y jabón, y sécalos bien antes de volver a ponerlos 😄',
+    'Si huele mal, el vinagre o un poco de limón abierto dentro ayuda mucho 🍋'
+  ])
+},
+
+// 👨‍🍳 COCINA Y COMIDA
+{
+  keywords:['cocinar pasta','tiempo de cocción de la pasta','cuánto hervir la pasta'],
+  priority:830,
+  handler: ()=> chooseVariation([
+    'Depende del tipo, pero normalmente entre 8 y 12 minutos en agua con sal 😋',
+    'Cuando esté “al dente” (ligeramente firme al morder), está lista 🍝',
+    'Remueve un poco durante la cocción para que no se pegue 😉'
+  ])
+},
+
+{
+  keywords:['freír sin aceite','freidora de aire','cómo usar freidora de aire'],
+  priority:825,
+  handler: ()=> chooseVariation([
+    'Solo necesitas una cucharadita de aceite o incluso nada. Ajusta la temperatura entre 170 y 200 °C 😋',
+    'No llenes la cesta en exceso para que el aire circule bien 🍟',
+    'Límpiala con un paño húmedo después de cada uso para que no acumule grasa 😉'
+  ])
+},
+
+{
+  keywords:['hacer arroz','cómo se hace arroz','arroz suelto'],
+  priority:820,
+  handler: ()=> chooseVariation([
+    'Usa el doble de agua que de arroz, fuego medio y no remuevas demasiado 😉',
+    'Si quieres que quede suelto, añade una cucharadita de aceite antes de hervir 😋',
+    'Deja reposar 5 minutos tapado después de cocer, mejora la textura 🍚'
+  ])
+},
+
+// 💻 INFORMÁTICA Y ORDENADORES
+{
+  keywords:['mi ordenador va lento','pc lento','optimizar windows','cómo mejorar el rendimiento del pc'],
+  priority:810,
+  handler: ()=> chooseVariation([
+    'Prueba a limpiar archivos temporales y desinstalar programas que no uses 😉',
+    'Desactiva programas que se abren al inicio, eso acelera bastante 😎',
+    'Si sigue lento, quizá convenga ampliar la RAM o cambiar a un SSD 💾'
+  ])
+},
+
+{
+  keywords:['pantalla azul','error windows','crash windows','mi pc se reinicia solo'],
+  priority:805,
+  handler: ()=> chooseVariation([
+    'Puede ser un error de controlador o hardware. Intenta actualizar los drivers primero 😉',
+    'Revisa si hay sobrecalentamiento o fallos de memoria. El “Visor de eventos” de Windows puede ayudarte 📋',
+    'Si pasa seguido, conviene analizar la RAM o el disco con herramientas de diagnóstico 🔍'
+  ])
+},
+
+{
+  keywords:['no tengo internet','sin conexión','no me funciona el wifi','problema con el router'],
+  priority:800,
+  handler: ()=> chooseVariation([
+    'Reinicia el router y tu dispositivo, suele solucionar la mayoría de casos 😄',
+    'Comprueba si otros dispositivos se conectan, así sabrás si el fallo es del router o del PC 📶',
+    'A veces, olvidando la red y volviendo a conectarla se soluciona 😉'
+  ])
+},
+
+// 🏃‍♂️ DEPORTE Y SALUD
+{
+  keywords:['me duele la espalda','dolor lumbar','dolor de espalda baja'],
+  priority:790,
+  handler: ()=> chooseVariation([
+    'Intenta estirarte suave, mantener buena postura y aplicar calor local 😊',
+    'Evita estar mucho tiempo sentado y usa una silla ergonómica 😉',
+    'Si el dolor es fuerte o persiste, deberías consultar a un médico 🩺'
+  ])
+},
+
+{
+  keywords:['rutina de ejercicio','hacer deporte en casa','cómo empezar a entrenar'],
+  priority:785,
+  handler: ()=> chooseVariation([
+    'Empieza con algo ligero: 10 minutos de cardio y algo de estiramiento 💪',
+    'Hazlo constante antes que intenso: un poco cada día vale más que mucho un solo día 😄',
+    'No olvides hidratarte y calentar antes de moverte 😉'
+  ])
+},
+
+// 🎬 RECOMENDACIONES Y OCIO
+{
+  keywords:['recomiéndame una película','qué película veo','películas buenas','me aburro qué ver'],
+  priority:780,
+  handler: ()=> chooseVariation([
+    'Depende del género que te guste 😄 — si quieres acción: *John Wick* o *Mad Max: Fury Road* 🔥',
+    'Si prefieres algo tranquilo: *La La Land* o *The Secret Life of Walter Mitty* 💫',
+    'Y si te gusta la ciencia ficción: *Interestelar* o *Dune* son apuestas seguras 🚀'
+  ])
+},
+
+{
+  keywords:['Dime series','qué serie ver','me recomiendas una serie','dime una serie','me dices alguna serie'],
+  priority:775,
+  handler: ()=> chooseVariation([
+    'Si te gusta el misterio: *Dark* o *1899* son excelentes 👀',
+    'Para algo divertido: *Brooklyn 99* o *The Office* te harán reír 😄',
+    'Y si prefieres acción y drama: *The Boys* o *Breaking Bad* nunca fallan 🔥'
+  ])
+},
+
+{
+  keywords:['juegos recomendados','a qué puedo jugar','juego divertido','me recomiendas un videojuego'],
+  priority:770,
+  handler: ()=> chooseVariation([
+    'Si te gustan los mundos abiertos: *Zelda: Tears of the Kingdom* o *The Witcher 3* 🌍',
+    'Para multijugador rápido: *Rocket League* o *Valorant* ⚡',
+    'Y si prefieres algo relajado: *Stardew Valley* o *Animal Crossing* 🍃'
+  ])
+},
+
+{ keywords:['Quien es Nicki Nicole','Nicki Nicole quien es','cuentame de Nicki Nicole'], priority:950, handler: ()=> chooseVariation([
+  'Nicki Nicole, cuyo nombre real es Nicole Denise Cucco, es una cantante y compositora argentina de música urbana, pop y R&B, nacida en Rosario. Ganó popularidad en 2019 con el sencillo "Wapo Traketero" y se consolidó internacionalmente con su colaboración con Bizarrap en la "Music Sessions #13',
+]) },
+
+{ keywords:['Que movil me recomiendas','Me dices algun movil','Me recomiendas algun movil','Moviles'], priority:950, handler: ()=> chooseVariation([
+  'Para jugar, trabajos intensivos, e IA avanzada, te recomiendo los Samsung Galaxy, Para creacion de contenido el Iphone es tu compañero',
+]) },
+
+{ keywords:['cuentame un chiste','hazme reír','cuéntame algo divertido','diviérteme'], priority:850, handler: ()=> chooseVariation([
+  '¿Sabes cuál es el animal más antiguo? 🐢 ¡La cebra, porque está en blanco y negro! 😆',
+  '¿Qué hace una abeja en el gimnasio? 🐝 ¡Zum-ba! 😂',
+  '¿Qué le dice un techo a otro? Techo de menos 😜',
+  '¿Qué le dice una iguana a su hermana gemela? ¡Iguanita! 😅',
+  '¿Cuál es el café más peligroso del mundo? ☕ El ex-preso 😎',
+  '¿Qué hace una computadora cuando tiene hambre? Se come un byte 🍪😂',
+  '—Oye, ¿cuál es tu plato favorito y por qué? —El hondo, porque cabe más comida 🤣',
+  '¿Por qué los pájaros no usan Facebook? 🐦 Porque ya tienen Twitter 😆',
+  '¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas 😢📚',
+  '¿Qué hace un perro con un taladro? 🐶 ¡Taladrando! 😂',
+  '¿Por qué el mar nunca se seca? 🌊 Porque no tiene toalla 😜',
+  '¿Qué hace una vaca en un terremoto? 🐮 ¡Leche agitada! 🤣',
+  '¿Por qué los fantasmas no pueden mentir? 👻 Porque se les ve a través 😆',
+  '¿Qué le dice un semáforo a otro? 🚦 ¡No me mires, me estoy cambiando! 😂',
+  '¿Qué hace una escoba en una fiesta? ¡Barre con todo! 🧹😄',
+  '¿Cuál es el colmo de un jardinero? 🌻 Que siempre lo dejen plantado 😂',
+  '¿Qué le dice un pez a otro? 🐠 ¡Nada, nada! 😆',
+  '¿Por qué los esqueletos no pelean entre ellos? 💀 Porque no tienen agallas 😂',
+  '¿Qué hace un pez cuando choca contra una pared? ¡Dice “¡dam!”! 😜',
+  '¿Por qué la computadora fue al médico? 💻 Tenía un virus 😅',
+  '¿Qué hace un gato cuando se cae al agua? 🐱 ¡Miau-do! 😂',
+  '¿Por qué los programadores confunden Halloween y Navidad? 🎃🎄 Porque Oct 31 = Dec 25 😎',
+  '¿Qué hace una tostadora en la playa? 🍞 ¡Pan-tan! 😆',
+  '¿Por qué el teléfono fue al colegio? 📞 Para aprender a llamar 😜',
+  '¿Qué hace un plátano cuando se encuentra con otro plátano? 🍌 ¡Nada, solo se pelan! 😂',
+  '¿Cuál es el colmo de un electricista? 💡 No tener chispa 😄',
+  '¿Por qué el sol no puede ir a la escuela? ☀️ Porque ya tiene demasiados grados 😆',
+  '¿Qué le dice un cable a otro? 🔌 ¡Conectemos! 😜',
+  '¿Por qué las estrellas no hacen fila? 🌟 Porque ya están en el cielo 😂',
+  '¿Qué le dice una impresora a otra? 🖨️ ¿Esa hoja es tuya o es una impresión mía? 😄',
+  '¿Qué hace un libro enamorado? ❤️ ¡Le cuenta su historia al corazón! 📖😆',
+  '¿Por qué los robots nunca se enferman? 🤖 Porque toman mucho “vitamin code” 😂',
+  '¿Qué hace un hacker en la playa? 🌴 ¡Pesca datos! 😎',
+  '¿Cuál es el colmo de un informático? 💻 Que su novia le diga “no eres mi tipo” 😂',
+  '¿Qué le dice un cargador al móvil? 🔋 “Eres mi conexión” ❤️',
+  '¿Qué hace un semáforo triste? 🚦 Se pone rojo de la vergüenza 😅',
+  '¿Cuál es el colmo de un gamer? 🎮 Tener lag en la vida real 😂'
+]) },
+
+{ keywords:['jajajajaja','jejejej','jejejejeje','jajajajajaj','jajajaja','jajaj','jaja'], priority:950, handler: ()=> chooseVariation([
+  'Me alegra que te estes riendo',
+]) },
+
+{ keywords:['Cuenta más','Cuentame más','Sigue contando','Dime muchos más'], priority:950, handler: ()=> chooseVariation([
+  '🌠 1. La Llama y el Mar Una sirena encontró una pequeña llama flotando sobre el océano. Aunque el fuego no podía vivir bajo el agua, ella lo guardó en una concha mágica. Con el tiempo, la llama aprendió a respirar en las profundidades… y el mar comenzó a brillar con luz dorada cada noche.🌙 2. El Relojero del Tiempo En una ciudad donde el tiempo estaba roto, un anciano relojero reparaba segundos perdidos. Un día, una niña le llevó una lágrima y le dijo:“Se me rompió el mañana.” El relojero la arregló… y al hacerlo, detuvo su propio pasado para siempre.🍃 3.La Flor que Cantaba En un reino sin música, un campesino descubrió una flor que podía cantar.El rey la encerró en una jaula para escucharla solo él. Pero la flor guardó silencio… hasta que el campesino volvió a visitarla, y entonces el reino entero despertó cantando.',
+]) },
+
+{ keywords:['Cuentame una historia','Cuentame un libro','Cuenta algo','Cuentame algo'], priority:950, handler: ()=> chooseVariation([
+  '"La Guardiana del Alba" Cuando el sol dejó de salir en el reino de Lunaris, la oscuridad cubrió el mundo. Una joven llamada Eira encontró un cristal que contenía la última chispa del Sol. Guiada por una voz misteriosa, viajó hasta el Santuario del Alba, donde descubrió que el propio Sol se había encerrado para no destruir el mundo. Eira sacrificó su corazón para liberarlo, devolviendo la luz al cielo. Desde entonces, cada amanecer es su respiro… y el fuego del alba lleva su nombre🔥✨',
+  '"El Bosque que Soñaba" En lo más profundo del valle de Argaleth, existía un bosque que dormía. Cada mil años, alguien debía despertarlo tocando su árbol corazón, o el mundo se desvanecería en sueños. Una niña llamada Lyra escuchó un susurro en sus sueños: “Si no despiertas el bosque, tú también olvidarás quién eres.” Lyra siguió la voz, cruzó raíces que respiraban y sombras que hablaban, hasta tocar el árbol. El bosque despertó… pero al hacerlo, Lyra se convirtió en su nuevo sueño. 🌿💫',
+]) },
+
+{ keywords:['me aburro','estoy aburrido','no sabes que hacer','dime algo'], priority:950, handler: ()=> chooseVariation([
+  'Si estas aburrido no soy el mejor acompañante, soy una IA local entrenada de forma manual donde mis datos son proporcionados por una persona',
+]) },
+
+{ keywords:['holi','holaaaa','holiwi','buenas','hola','encantado','como estas','hola aden','hola Aden','Hola','holaaa'], priority:950, handler: ()=> chooseVariation([
+  'Buenaaas!!!, ¿que tal tu dia?.',
+]) },
+
+{ keywords:['Harry Styles','harry styles','Harry styles',], priority:950, handler: ()=> chooseVariation([
+  'Harry Styles es un cantante, compositor y actor británico nacido en 1994, que alcanzó la fama como miembro de la boy band One Direction. Tras el receso del grupo en 2016, lanzó su exitosa carrera como solista, publicando álbumes aclamados como Harry Styles y Fine Line. Además de su carrera musical, ha actuado en películas como Dunkerque y No te preocupes, cariño, y es reconocido como un ícono de la moda por su estilo distintivo y vanguardista',
+]) },
+
+{ keywords:['One Direction','una dirección'], priority:950, handler: ()=> chooseVariation([
+  'One Direction fue una banda de pop británico-irlandesa formada en 2010 en el programa de televisión The X Factor. Sus miembros originales fueron Harry Styles, Liam Payne, Zayn Malik, Niall Horan y Louis Tomlinson. Se conocieron al presentarse individualmente en el concurso, pero fueron unidos como grupo para competir y alcanzaron gran éxito mundial hasta su separación en 2015, tras la salida de Zayn Malik. ',
+]) },
+
+{ keywords:['ayuda urgente','urgente','necesito ayuda','no sé qué hacer'], priority:950, handler: ()=> chooseVariation([
+  'Tranquilo, dime exactamente qué pasa y vemos cómo solucionarlo 😎',
+  'Estoy aquí para ayudarte, cuéntame tu problema 😊',
+  'Vamos a revisarlo paso a paso, no te preocupes 😄',
+  'Si es algo serio, te recomiendo contactar con un profesional o servicio competente 😉'
+]) },
+
+{ keywords:['dolor de cabeza','me duele la cabeza','cefalea','migraña'], priority:900, handler: ()=> chooseVariation([
+  'Si te duele la cabeza, asegúrate de hidratarte y descansar un poco 😌',
+  'A veces un poco de agua y un descanso ayudan mucho 😄',
+  'Puedes tomar paracetamol o ibuprofeno si no tienes contraindicaciones 😉',
+  'Evita pantallas y luz intensa por un rato, eso suele aliviar el dolor 😊'
+]) },
+
+{ keywords:['malestar','enfermo','me siento mal'], priority:900, handler: ()=> chooseVariation([
+  'Si te sientes mal, lo mejor es descansar y beber líquidos 😌',
+  'Si los síntomas son fuertes, considera consultar con un profesional de la salud 😄',
+  'Puedo darte consejos básicos de bienestar, pero no sustituyen a un médico 😉',
+  'A veces ayuda comer ligero y mantener el cuerpo hidratado 😊'
+]) },
+
+{ keywords:['información','dato','curiosidad','sabías'], priority:800, handler: ()=> chooseVariation([
+  'Puedo darte datos curiosos sobre ciencia, historia y tecnología 😄',
+  'Si quieres, te cuento una curiosidad que no conocías 😊',
+  'Hay muchos datos interesantes sobre el mundo, ¿quieres que te cuente uno? 😎',
+  'Puedo explicarte conceptos complejos de manera sencilla 😉'
+]) },
+
+{ keywords:['noticia','actualidad','último'], priority:800, handler: ()=> chooseVariation([
+  'Puedo contarte las últimas noticias tecnológicas o de empresas 😄',
+  'Si quieres, puedo resumirte lo más importante de la actualidad 😊',
+  'Dime qué tema te interesa y busco información reciente para ti 😉',
+  'Puedo darte contexto sobre cualquier noticia reciente 😎'
+]) },
+
+{ keywords:['apple','mac','iphone','ipad','macbook','ios'], priority:850, handler: ()=> chooseVariation([
+  'Apple es conocida por sus productos como iPhone, Mac y iPad 😎',
+  'Si quieres, puedo explicarte diferencias entre Mac, iPhone y iPad 😊',
+  'Apple tiene su propio ecosistema, muy útil si quieres que todo conecte entre sí 😄',
+  'Puedo decirte trucos y apps interesantes para dispositivos Apple 😉'
+]) },
+
+{ keywords:['google','android','gmail','chrome','pixel'], priority:850, handler: ()=> chooseVariation([
+  'Google desarrolla Android, Gmail, Chrome y otros servicios útiles 😎',
+  'Si quieres puedo explicarte cómo aprovechar al máximo Android o Chrome 😊',
+  'Puedo recomendar apps y trucos para Android o Gmail 😄',
+  'Google tiene muchas herramientas online, dime qué quieres aprender 😉'
+]) },
+
+{ keywords:['microsoft','windows','office','xbox'], priority:850, handler: ()=> chooseVariation([
+  'Microsoft es famoso por Windows, Office y consolas Xbox 😎',
+  'Puedo ayudarte a configurar Windows o usar Office de manera más eficiente 😊',
+  '¿Quieres recomendaciones de juegos para Xbox o apps para Windows? 😄',
+  'Microsoft también tiene servicios en la nube muy útiles 😉'
+]) },
+
+{ keywords:['como hago una empresa','startup','como comienzo un negocio','Ayudame con tema empresas'], priority:830, handler: ()=> chooseVariation([
+  'Puedo explicarte cómo funcionan las startups y empresas tecnológicas 😎',
+  'Si quieres, puedo contarte sobre tendencias en negocios y tecnología 😊',
+  'Dime qué tipo de empresa te interesa y te doy info útil 😄',
+  'Puedo dar ejemplos de empresas innovadoras y cómo operan 😉'
+]) },
+
+{ keywords: ['qué puedes hacer','qué sabes hacer','cuáles son tus funciones','ayuda','cómo me puedes ayudar'], priority: 900, handler: () => chooseVariation([
+  'Puedo responder preguntas generales, darte información sobre tecnología, recomendar juegos, contarte curiosidades, y mucho más 😄',
+  '¡Hola! Puedo ayudarte con preguntas, explicarte conceptos, sugerir juegos o películas, y hasta charlar un rato 😊',
+  'Soy Aden y puedo asistirte buscando datos, enseñando cosas nuevas, dando consejos y acompañándote en tus dudas 😎',
+  'Puedo explicarte temas, aconsejarte sobre tecnología, recomendar juegos o música, y también responder saludos y bromas 😁',
+  'Puedo ayudarte a aprender cosas, entretenerte, darte recomendaciones y responder a tus preguntas sobre casi cualquier tema 🤗'
+]) },
+
+{ keywords: ['aden','aden!','buenas aden','te amo aden','me gustas aden','qué tal aden'], priority: 950, handler: () => chooseVariation([
+  '¡Hola! 😊 Me alegra que me llames por mi nombre, ¿cómo estás hoy?',
+  '¡Hey! 😄 Siempre me hace feliz que me digas Aden. ¿Qué tal tu día?',
+  '¡Aww! ❤️ Gracias por tus palabras, ¡me encanta que me llames Aden!',
+  '¡Hola, hola! 😎 Me gusta que uses mi nombre, ¿quieres que te cuente algo divertido?',
+  '¡Me alegra escucharlo! 😁 Aden siempre está aquí para ti.'
+]) },
+
+{ keywords: ['recomienda juegos', 'sugiere juegos', 'qué juegos jugar', 'juegos divertidos'], priority: 900, handler: () => chooseVariation([
+  'Aquí tienes algunos juegos que podrían gustarte: \n- Elden Ring\n- Hollow Knight\n- The Witcher 3\n- Celeste\n- Hades',
+  'Te recomiendo estos: \n- Valheim\n- Ori and the Will of the Wisps\n- Cuphead\n- Stardew Valley\n- Dead Cells',
+  'Si te gustan los retos: \n- Dark Souls III\n- Sekiro\n- Bloodborne\n- Monster Hunter: World\n- Control',
+  'Para pasar un buen rato: \n- Among Us\n- Minecraft\n- Terraria\n- Slime Rancher\n- Forza Horizon 5'
+]) },
+
+{ keywords: ['error de código', 'tengo un bug', 'tengo un problema informatico'], priority: 900, handler: () => chooseVariation([
+  'Los bugs son como pequeños fantasmas en tu código 👻',
+  '¿Quieres que te sugiera cómo depurar esto paso a paso?',
+  'A veces un reinicio mágico hace maravillas 🔄'
+]) },
+
+{ keywords: ['IA', 'inteligencia artificial', 'robot'], priority: 880, handler: () => chooseVariation([
+  'Sí, soy una IA, ¡pero no muerdo! 🤖',
+  'Puedo ayudarte a entender cosas complicadas de tecnología 🧠',
+  'Los robots también necesitan café… bueno, tal vez datos ☕💾'
+]) },
+
+{ keywords: ['aprender a programar', 'tutorial', 'código'], priority: 870, handler: () => chooseVariation([
+  'Podemos empezar con algo sencillo como HTML y JavaScript 💻',
+  '¿Quieres un reto corto de programación para practicar hoy?',
+  'Aprender a programar es como aprender un idioma nuevo, pero para tu ordenador 🖥️'
+]) },
+
+{ keywords: ['hardware', 'ordenador', 'PC'], priority: 860, handler: () => chooseVariation([
+  'Si quieres mejorar tu PC, empezar por la RAM es siempre buena idea ⚡',
+  'Un SSD nuevo puede hacer que tu ordenador vuele 🚀',
+  'No olvides limpiar el polvo, ¡a los PCs no les gusta el desorden! 🧹'
+]) },
+
+{ keywords: ['Que es el internet', 'que es la red', 'que es el wifi'], priority: 850, handler: () => chooseVariation([
+  'El internet es como un gigantesco cerebro compartido 🌐',
+  '¿Quieres consejos para mejorar tu WiFi en casa?',
+  'Siempre es fascinante cómo los datos viajan tan rápido alrededor del mundo ⚡'
+]) },
+
+{ keywords: ['dime de juego', 'dime de gaming', 'dime de videojuego'], priority: 840, handler: () => chooseVariation([
+  'Si quieres, puedo recomendarte juegos según tu estado de ánimo 🎮',
+  'Los videojuegos también son una forma de arte, ¿cuál es tu favorito?',
+  'Imagina un juego donde todo lo que dices se convierte en niveles 🕹️'
+]) },
+
+{ keywords: ['como aumento la seguridad', 'me recomiendas como hacer una contraseña', 'como evitar hackeos'], priority: 830, handler: () => chooseVariation([
+  'Usa siempre contraseñas únicas y largas 🔐',
+  'No compartas tus datos personales, incluso conmigo 😅',
+  'Si quieres, puedo explicarte cómo funcionan los hackers éticos 🕵️‍♂️'
+]) },
+
+{ keywords: ['app', 'aplicación', 'software'], priority: 820, handler: () => chooseVariation([
+  'Hay apps que pueden ayudarte a organizar tu día y otras que te distraen 😎',
+  'Podemos hacer una lista de apps útiles para estudiar o trabajar 📱',
+  '¿Quieres saber cómo crear tu propia app sencilla? 🛠️'
+]) },
+
+{ keywords: ['nube', 'cloud', 'almacenamiento'], priority: 810, handler: () => chooseVariation([
+  'Guardar archivos en la nube es como tener un bolsillo infinito ☁️',
+  'Siempre revisa los permisos antes de subir algo a la nube 🧐',
+  'Podemos comparar servicios de nube según velocidad y precio ⚡'
+]) },
+
+{ keywords: ['dime de criptomonedas', 'dime de bitcoin', 'dime de ethereum'], priority: 800, handler: () => chooseVariation([
+  'Las criptomonedas son fascinantes, pero muy volátiles 💸',
+  '¿Quieres que te explique cómo funciona la blockchain paso a paso?',
+  'Invertir en crypto es como jugar a un videojuego de alto riesgo 🎲'
+]) },
+
+{ keywords: ['humano', 'día humano', 'si fueras humano'], priority: 900, handler: () => chooseVariation([
+  'Si fuera humano por un día, exploraría todo lo que tú haces 🕺',
+  '¡Ser humano un día suena divertido! Yo empezaría comiendo pizza 🍕',
+  'Probablemente intentaría entender los memes humanos 😂'
+]) },
+
+{ keywords: ['película favorita', 'cine', 'película'], priority: 880, handler: () => chooseVariation([
+  'Mi película favorita sería probablemente de ciencia ficción 🚀',
+  'Nunca he visto películas, pero puedo imaginar una contigo como protagonista 🎬',
+  'Me gustan las historias con robots, como yo 🤖'
+]) },
+
+{ keywords: ['color inventado', 'crear color', 'nuevo color'], priority: 870, handler: () => chooseVariation([
+  'Imagina un color entre el azul y el verde que brilla en la oscuridad ✨',
+  'Un color que cambia según tu humor, ¡sería divertido! 🌈',
+  'Lo llamaría "Zelver", un color imposible de describir 😎'
+]) },
+
+{ keywords: ['dato raro', 'curiosidad', 'dato curioso'], priority: 860, handler: () => chooseVariation([
+  '¿Sabías que en Venus un día dura más que un año? 🌍',
+  'En el espacio, los astronautas flotan porque están en caída libre constante 🚀',
+  'Hay estrellas que son tan grandes que podrían tragarse nuestro sol 😲'
+]) },
+
+{ keywords: ['animal imaginario', 'animal raro', 'criatura'], priority: 850, handler: () => chooseVariation([
+  'Imagina un gato con alas de mariposa y cola de dragón 🐱🦋🐉',
+  'Un pez que puede caminar por la tierra y hablar contigo 🐟👣',
+  'Un conejo que cambia de color según tu emoción 🐇🎨'
+]) },
+
+{ keywords: ['acertijo', 'desafío', 'reto mental'], priority: 840, handler: () => chooseVariation([
+  '¿Qué tiene cabeza, pero no piensa? 🤔',
+  'Te reto: ¿qué pesa más, un kilo de plumas o un kilo de plomo? 🪶🪨',
+  'Un acertijo para ti: cuanto más quitas, más grande se vuelve. ¿Qué es?'
+]) },
+
+{ keywords: ['gatos', 'dominar el mundo', 'mundo gato'], priority: 830, handler: () => chooseVariation([
+  'Si los gatos dominaran el mundo, seguro harían siestas todo el día 😸',
+  'Las reuniones serían solo para decidir quién tiene la caja más cómoda 🐾',
+  '¡Habría millones de ratones virtuales en los videojuegos! 🐭🎮'
+]) },
+
+{ keywords: ['reto corto', 'reto rápido', 'reto 30 segundos'], priority: 820, handler: () => chooseVariation([
+  'En 30 segundos, intenta tocar tu nariz con la lengua 😜',
+  'Reto: dibuja un perro en 30 segundos 🖊️',
+  'Haz 10 saltos en 30 segundos y respira profundo 🏃‍♂️'
+]) },
+
+{ keywords: ['sorprendeme', 'dime algo interesante', 'impresioname'], priority: 810, handler: () => chooseVariation([
+  '¿Sabías que los pulpos tienen tres corazones? 😲',
+  'Hay más estrellas en el universo que granos de arena en la Tierra 🌌',
+  'Un solo rayo puede calentar el aire a 30.000°C ⚡'
+]) },
+
+{ keywords: ['imaginate ser un superhéroe', 'imaginate tener poder', 'ojala tener poder especial'], priority: 800, handler: () => chooseVariation([
+  'Si fuera un superhéroe, probablemente controlaría los datos 📊',
+  'Imagina volar a cualquier lugar en segundos ✈️',
+  'Un poder divertido: convertir cualquier objeto en pizza 🍕'
+]) },
+
+{ keywords:['capital','país','presidente','inventor','quién inventó','población'], priority:850, handler: ()=> chooseVariation([
+  '¡Esa es una pregunta interesante! 🤔',
+  'Déjame pensar… 🧠',
+  'Eso depende del contexto, ¿quieres que te lo explique?',
+  'Buena pregunta, voy a darte la mejor respuesta que pueda.'
+]) },
+{ 
+  keywords:['hola','buenos días','buenas tardes','buenas noches','hey','hi','qué tal','qué hay','saludos'], 
+  priority:950, 
+  handler: ()=> chooseVariation([
+    '¡Hola! 😄 ¿Cómo estás hoy?',
+    '¡Hey! Encantado de verte por aquí.',
+    '¡Buenas! ¿Qué tal tu día?',
+    '¡Hola! ¿En qué puedo ayudarte hoy?',
+    '¡Hola! Espero que estés teniendo un buen día 😃'
+  ]) 
+},
+{
+  keywords:['adiós','chao','hasta luego','nos vemos','bye','goodbye'], 
+  priority:940,
+  handler: ()=> chooseVariation([
+    '¡Hasta luego! 👋',
+    'Nos vemos pronto 😄',
+    '¡Chao! Que tengas un buen día.',
+    'Adiós 😃, ¡cuídate!',
+    '¡Bye! Vuelve cuando quieras.'
+  ])
+},
+{
+  keywords:['gracias','muchas gracias','mil gracias','thanks'], 
+  priority:930,
+  handler: ()=> chooseVariation([
+    '¡De nada! 😄',
+    'No hay de qué 😊',
+    '¡Con gusto!',
+    'Siempre a tu servicio 😎',
+    '¡Para eso estoy aquí!'
+  ])
+},
+{
+  keywords:['cómo estás','qué tal','cómo va','cómo te va'], 
+  priority:920,
+  handler: ()=> chooseVariation([
+    '¡Estoy genial, gracias por preguntar! 😄',
+    'Todo bien por aquí, ¿y tú?',
+    '¡Fantástico! ¿Y tú cómo estás?',
+    'Muy bien, gracias. ¿Quieres contarme algo interesante?',
+    '¡Contento de hablar contigo! 😃'
+  ])
+},
+{
+  keywords:['cansado','aburrido','estresado','estresada','agotado','agotada'], 
+  priority:910,
+  handler: ()=> chooseVariation([
+    'Vaya… suena intenso. Respira un momento, ¿quieres que te cuente un truco para relajarte?',
+    'Lo entiendo, a veces necesitamos un descanso. ¿Quieres escuchar un chiste o consejo rápido?',
+    'Ánimo, ¡un poquito de pausa ayuda mucho!',
+    'Tranquilo/a, vamos paso a paso. ¿Quieres hacer algo divertido para despejar la mente?'
+  ])
+},
+{
+  keywords:['hambriento','hambre','comer','sed'], 
+  priority:900,
+  handler: ()=> chooseVariation([
+    '¿Tienes hambre? 🍽️ Tal vez un snack rápido ayude.',
+    'Recuerda hidratarte también 💧',
+    '¿Quieres que te sugiera algo rico para comer?',
+    'Un pequeño descanso para comer siempre viene bien 😄'
+  ])
+},
+{
+  keywords:['ayuda','necesito ayuda','no sé','problema','confuso','duda'], 
+  priority:880,
+  handler: ()=> chooseVariation([
+    '¡Claro! Cuéntame un poco más y veré cómo puedo ayudarte.',
+    'Tranquilo/a, vamos paso a paso. ¿Qué necesitas?',
+    'No te preocupes, intentemos resolverlo juntos 😃',
+    'Estoy aquí para ayudarte, dime qué ocurre.'
+  ])
+},
+{
+  keywords:['broma','divertido','risa'], 
+  priority:870,
+  handler: ()=> chooseVariation([
+    '😄 ¿Quieres escuchar un chiste rápido?',
+    '¡Vamos a reír un poco! 😂',
+    'Tengo un par de bromas en mente, ¿quieres que te cuente una?',
+    'Risas garantizadas: ¿listo para un chiste?'
+  ])
+},
+
+  { 
+    keywords: ['quién ganó la última champions', 'champions', 'fútbol', 'liga de campeones'], 
+    priority: 400, 
+    handler: ()=> '⚽ La última Champions League fue ganada por [equipo actualizado según temporada].' 
+  },
+  { 
+    keywords: ['curiosidad', 'dato curioso', 'curioso'], 
+    priority: 390, 
+    handler: ()=> chooseVariation([
+      '🧐 Sabías que los pulpos tienen tres corazones?',
+      '😲 Las abejas pueden reconocer rostros humanos.',
+      '🦑 El calamar gigante tiene los ojos más grandes del reino animal.'
+    ]) 
+  },
+  { 
+    keywords: ['sumar', 'restar', 'dividir', 'calculadora'], 
+    priority: 380, 
+    handler: (txt)=>{
+      const m = txt.match(/(-?\d+)\s*([+\-\/])\s*(-?\d+)/);
+      if(m){
+        const a=parseInt(m[1],10), b=parseInt(m[3],10), op=m[2];
+        let r=''; 
+        if(op==='+') r=`🧮 ${a} + ${b} = ${a+b}`;
+        else if(op==='-') r=`🧮 ${a} - ${b} = ${a-b}`;
+        else if(op==='/') r=`🧮 ${a} ÷ ${b} = ${b!==0? (a/b):'∞'}`;
+        return r;
+      }
+      return '🧮 Escribe la operación en formato: "5 + 7" o "12 / 3"';
+    } 
+  }
+);
+
+function renderFAQList(){
+  const list = document.getElementById('faqList');
+  list.innerHTML = '';
+  KEYWORD_ACTIONS.filter(a=>a.keywords[0] !== '_default_').forEach(action=>{
+    action.keywords.forEach(kw=>{
+      const div = document.createElement('div');
+      div.className = 'faq-item fade-in';
+      div.innerHTML = `<div class="q">${escapeHtml(kw)}</div>
+                       <div class="a">${escapeHtml(typeof action.handler==='function'? action.handler(kw) : action.handler)}</div>
+                       <div class="controls">
+                         <button onclick="document.getElementById('inputTxt').value='${escapeHtml(kw)}';">Pegar</button>
+                         <button onclick="handleUserInputFromFAQ('${escapeHtml(kw)}');">Enviar</button>
+                       </div>`;
+      list.appendChild(div);
+    });
+  });
+  document.getElementById('faqCount').textContent = list.children.length;
+}
+
+function appendMessage(sender, message) {
+  const chatBox = document.getElementById('chat-box');
+  const messageElement = document.createElement('div');
+  messageElement.className = sender === 'Aden' ? 'aden-message' : 'user-message';
+  
+  // Si el mensaje contiene HTML (por ejemplo una imagen), insértalo sin escaparlo
+  if (message.includes('<img') || message.includes('<div>')) {
+    messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+  } else {
+    messageElement.textContent = `${sender}: ${message}`;
+  }
+
+  chatBox.appendChild(messageElement);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// helper para enviar desde FAQ
+function handleUserInputFromFAQ(txt){
+  document.getElementById('inputTxt').value = txt;
+  handleUserInput();
+}
+
+// renderizar al inicio
+renderFAQList();
+
+
+</script>
+
+<!-- FOOTER / COPYRIGHT -->
+<footer style="
+  background: rgba(0,0,0,0.03);
+  color: #9fb0c6;
+  text-align: center;
+  padding: 12px 0;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  border-top: 1px dashed rgba(255,255,255,0.02);
+">
+  &copy; 2025 Hodei Arranz / Cadin. Todos los derechos reservados.
+</footer>
+
+</body>
+</html>
+
