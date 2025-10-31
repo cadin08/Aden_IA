@@ -7,3 +7,9 @@ El codigo de Aden tendra notas y pautas para que los que quieran modificarlo lo 
 
 CREDITOS
 Si modifica Aden y crea su propia IA Local y lo sube a internet, si es posible, darme creditos en su creacion.
+
+Aden es un proyecto personal creado con mucho esfuerzo donde quiere llevarse a ser algo ambicioso y ayudar realmente a las personas, Aden IA necesita lucrarse de informacion ya que este necesita al no usar internet, aqui podeis ayudar enviando codgo de informacion para Aden...
+
+© 2025 Hodei Arranz / Cadin. Todos los derechos reservados.
+
+Aden  by Hodei Arranz Romero
