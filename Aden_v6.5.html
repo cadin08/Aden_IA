@@ -867,7 +867,6 @@ const KEYWORD_ACTIONS = [
   { keywords:['hora','horas','reloj','qué hora','que hora','hora es'], priority:900, handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
   { keywords:['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'], priority:860, handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
   { keywords:['x','*','por','multiplica','multiplicación'], priority:850, handler: (txt)=>{ const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/); if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i); if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"'; } },
-  { keywords:['chiste','cuentame un chiste','cuéntame un chiste','dime un chiste','hazme reir'], priority:820, handler: ()=> { const jokes = ['😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!','🤣 ¿Por qué los pájaros no usan Facebook? ¡Porque ya tienen Twitter!','😄 ¿Cuál es el colmo de un electricista? Que le dé miedo la oscuridad.','😆 ¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas.']; return jokes[Math.floor(Math.random()*jokes.length)]; } },
   { keywords:['traduce','traducir','traducción'], priority:800, handler: (txt)=>{ const after = txt.split(/traduce[:\s]|traducir[:\s]/i)[1]; if(after && after.trim()) return `🌐 Traducción (simulada): "${after.trim()}" => (ejemplo offline).`; return '🌐 Dime el texto que quieres traducir después de "traduce" o "traducir".'; } },
   { keywords:['triste','deprim','alegre','feliz','ansiedad','ansioso','ansiosa','enfadado','enojado','solo','sola','solo.'], priority:790, handler: (txt)=>{ if(/triste|deprim/i.test(txt)) return chooseVariation(['Siento que te sientas así. Si quieres, puedo escucharte y darte algunas ideas para animarte.','Lo siento — te acompaño. ¿Quieres que hablemos un rato?','Lamento que te sientas así. ¿Te apetece un consejo sencillo para mejorar el ánimo?']); if(/ansiedad|ansioso|ansiosa|estres|estrés/i.test(txt)) return chooseVariation(['Respirar profundamente 4-4-4 puede ayudar. ¿Quieres que te guíe?','Intentar respirar despacio 5 minutos ayuda a calmar la ansiedad. ¿Lo intentamos?']); if(/enfadad|enojad|cabre/i.test(txt)) return chooseVariation(['Respirar y dar un paso atrás suele funcionar. ¿Quieres distraerte con algo?','Lo entiendo. ¿Quieres contarme por qué te enfada?']); return 'Si quieres, cuéntame más.'; } },
   { keywords:['inteligencia artificial','ia','agujero negro','everest','tokio','capital de japón','capital japon','rusia'], priority:650, handler: (txt)=>{ if(/inteligencia artificial|ia/.test(txt)) return '🤖 La inteligencia artificial es la simulación de procesos inteligentes por máquinas. Puedo darte ejemplos o explicarlo con analogías.'; if(/agujero negro/.test(txt)) return '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que ni la luz puede escapar.'; if(/everest|montaña más alta/.test(txt)) return '🗻 El monte Everest es la montaña más alta (≈8848 m).'; if(/capital.*jap|tokio/.test(txt)) return '🏯 La capital de Japón es Tokio.'; if(/rusia|país más grande/.test(txt)) return '🌏 Rusia es el país más grande por superficie.'; return null; } },
@@ -1132,7 +1131,7 @@ KEYWORD_ACTIONS.push(
   keywords:['mal','muy mal','raro','fatal'],
   priority:600,
   handler: ()=> chooseVariation([
-    'Vaya, siento escuchar eso, quieres que te cuente unos chistes, si quieres, dime hazme reir, cuentame un chiste, lo que quieras',
+    'Vaya, siento escuchar eso, quieres que te cuente unos chistes, si quieres, dime hazme reir, hazme reir, lo que quieras',
   ])
 },
 
@@ -1661,7 +1660,7 @@ KEYWORD_ACTIONS.push(
   'Para jugar, trabajos intensivos, e IA avanzada, te recomiendo los Samsung Galaxy, Para creacion de contenido el Iphone es tu compañero',
 ]) },
 
-{ keywords:['cuentame un chiste','hazme reír','cuéntame algo divertido','diviérteme'], priority:850, handler: ()=> chooseVariation([
+{ keywords:['hazme reir'], priority:850, handler: ()=> chooseVariation([
   '¿Sabes cuál es el animal más antiguo? 🐢 ¡La cebra, porque está en blanco y negro! 😆',
   '¿Qué hace una abeja en el gimnasio? 🐝 ¡Zum-ba! 😂',
   '¿Qué le dice un techo a otro? Techo de menos 😜',
@@ -1709,7 +1708,7 @@ KEYWORD_ACTIONS.push(
   '🌠 1. La Llama y el Mar Una sirena encontró una pequeña llama flotando sobre el océano. Aunque el fuego no podía vivir bajo el agua, ella lo guardó en una concha mágica. Con el tiempo, la llama aprendió a respirar en las profundidades… y el mar comenzó a brillar con luz dorada cada noche.🌙 2. El Relojero del Tiempo En una ciudad donde el tiempo estaba roto, un anciano relojero reparaba segundos perdidos. Un día, una niña le llevó una lágrima y le dijo:“Se me rompió el mañana.” El relojero la arregló… y al hacerlo, detuvo su propio pasado para siempre.🍃 3.La Flor que Cantaba En un reino sin música, un campesino descubrió una flor que podía cantar.El rey la encerró en una jaula para escucharla solo él. Pero la flor guardó silencio… hasta que el campesino volvió a visitarla, y entonces el reino entero despertó cantando.',
 ]) },
 
-{ keywords:['Cuentame una historia','Cuentame un libro','Cuenta algo','Cuentame algo'], priority:950, handler: ()=> chooseVariation([
+{ keywords:['Cuentame una historia','Cuentame un libro','Cuenta algo','Cuentame algo','Cuentame un cuento',], priority:950, handler: ()=> chooseVariation([
   '"La Guardiana del Alba" Cuando el sol dejó de salir en el reino de Lunaris, la oscuridad cubrió el mundo. Una joven llamada Eira encontró un cristal que contenía la última chispa del Sol. Guiada por una voz misteriosa, viajó hasta el Santuario del Alba, donde descubrió que el propio Sol se había encerrado para no destruir el mundo. Eira sacrificó su corazón para liberarlo, devolviendo la luz al cielo. Desde entonces, cada amanecer es su respiro… y el fuego del alba lleva su nombre🔥✨',
   '"El Bosque que Soñaba" En lo más profundo del valle de Argaleth, existía un bosque que dormía. Cada mil años, alguien debía despertarlo tocando su árbol corazón, o el mundo se desvanecería en sueños. Una niña llamada Lyra escuchó un susurro en sus sueños: “Si no despiertas el bosque, tú también olvidarás quién eres.” Lyra siguió la voz, cruzó raíces que respiraban y sombras que hablaban, hasta tocar el árbol. El bosque despertó… pero al hacerlo, Lyra se convirtió en su nuevo sueño. 🌿💫',
 ]) },
