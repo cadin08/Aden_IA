@@ -481,7 +481,6 @@ function speakWithMode(text, intention='neutral'){
    ----------------------- */
 const KEYWORD_ACTIONS = [
   { keywords:['idiota','imbecil','tonto','estupido','estúpido','gilipollas','cabron','cabrón','mierda','puta','puto','hijo de puta','zorra','bobo','subnormal','payaso'], priority:999, handler: ()=> 'No seguiré esta conversación si sigues así.' },
-  { keywords:['quien te hizo','quien te creo','quien te creó','quién te creó','quien te a hecho','quien te a creado','quien te ha creado','creador','programaste','programó','fuiste creado por'], priority:980, handler: ()=> 'Aden ha sido creado por amor al arte por Hodei Arranz Romero.' },
   { keywords:['hora','horas','reloj','qué hora','que hora','hora es'], priority:900, handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
   { keywords:['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'], priority:860, handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
   { keywords:['x','*','por','multiplica','multiplicación'], priority:850, handler: (txt)=>{ const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/); if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i); if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"'; } },
@@ -617,7 +616,7 @@ document.getElementById('searchChats').addEventListener('input', e=>{
 });
 
 /* suggestions */
-const SUGGESTIONS = ['hola','quién te creó','cuéntame un chiste','hora','fecha','traduce: hola mundo','25 x 47','me siento triste','qué es la inteligencia artificial','receta pasta','ayuda con python','cómo usar git'];
+const SUGGESTIONS = ['hola','dato raro','cuentame un chiste','hora','fecha','traduce: hola mundo','25 x 47','me siento triste','qué es la inteligencia artificial','receta pasta','ayuda con python','cómo usar git'];
 function renderSuggestions(){ const container=document.getElementById('suggestions'); container.innerHTML=''; SUGGESTIONS.forEach(s=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=s; c.onclick=()=>{ document.getElementById('inputTxt').value=s; updateCharCount(); document.getElementById('inputTxt').focus(); }; container.appendChild(c); }); }
 
 /* char counter */
@@ -644,7 +643,6 @@ const FAQ_ITEMS = [
   { q:'¿Qué hora es?', a: 'Aden responde con la hora actual de tu PC si detecta la palabra "hora".' },
   { q:'¿Qué fecha es hoy?', a: 'Aden dará la fecha local si detecta "fecha" o "día".' },
   { q:'Cuéntame un chiste', a: 'Aden tiene varios chistes guardados y variará entre ellos.' },
-  { q:'¿Quién te creó?', a: 'Aden responderá: "Aden ha sido creado por amor al arte por Hodei Arranz Romero."' },
   { q:'Traduce: hola mundo', a: 'Aden ofrece una traducción simulada offline al detectar "traduce".' },
   { q:'25 x 47', a: 'Aden detecta multiplicaciones escritas con "x" o "*" y las resuelve.' },
   { q:'Me siento triste', a: 'Aden detecta emociones (tristeza, ansiedad) y responde con empatía y opciones.' },
@@ -658,7 +656,6 @@ const FAQ_ITEMS = [
   { q:'¿Cómo me organizo hoy?', a: 'Aden ofrece consejos de productividad, Pomodoro y planificación.' },
   { q:'Dime una frase motivadora', a: 'Aden ofrece frases motivadoras al detectar "motivación" o "ánimo".' },
   { q:'¿Cómo traduzco un texto?', a: 'Escribe "traduce: [texto]" y Aden te dará una traducción simulada.' },
-  { q:'¿Qué opinas de Hodei?', a: 'Puedes añadir una respuesta personalizada para esa pregunta.' },
   { q:'¿Puedes decir una curiosidad?', a: 'Aden tiene datos curiosos sobre ciencia, historia y más.' },
   { q:'Consejos para el insomnio', a: 'Aden dará consejos generales y sugerencias no médicas.' },
   { q:'¿Qué canciones conoces?', a: 'Aden tiene referencias musicales (ej. Despacito, géneros, etc.).' },
@@ -823,13 +820,6 @@ KEYWORD_ACTIONS.push(
 
 { keywords:['One Direction','una dirección'], priority:950, handler: ()=> chooseVariation([
   'One Direction fue una banda de pop británico-irlandesa formada en 2010 en el programa de televisión The X Factor. Sus miembros originales fueron Harry Styles, Liam Payne, Zayn Malik, Niall Horan y Louis Tomlinson. Se conocieron al presentarse individualmente en el concurso, pero fueron unidos como grupo para competir y alcanzaron gran éxito mundial hasta su separación en 2015, tras la salida de Zayn Malik. ',
-]) },
-
-{ keywords:['Sabes quien es Naroa','Sabes de Naroa','Conoces a Naroa','Hablame de Naroa'], priority:950, handler: ()=> chooseVariation([
-  'No la conozco, pero suena auna persona muy tonta',
-  'No se de quien me hablas, pero tiene pinta de ser alguien fea',
-  'Naroa, Naroa... no, no la conozco pero seguramente que no se sepa ni la tabla del 1 jajajajaja',
-  'Naroa dices, no se, que nombre mas tonto'
 ]) },
 
 { keywords:['ayuda urgente','urgente','necesito ayuda','no sé qué hacer'], priority:950, handler: ()=> chooseVariation([
