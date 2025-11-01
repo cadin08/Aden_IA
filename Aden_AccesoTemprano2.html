@@ -1,0 +1,891 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>AIDEN — Asistente IA (Demo local, mejorado)</title>
+<style>
+  /* -------------------------
+     Theme variables & base
+     -------------------------*/
+  :root{
+    --bg-0:#061423;
+    --bg-1:#052033;
+    --panel:#071827;
+    --glass: rgba(255,255,255,0.03);
+    --muted:#9fb0c8;
+    --accent-1:#57e4b8;
+    --accent-2:#6fb7ff;
+    --danger:#ff6b6b;
+    --card:#071827;
+    --radius:12px;
+    --shadow: 0 12px 32px rgba(2,8,23,0.6);
+    --maxw:1200px;
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#eaf6ff}
+  *{box-sizing:border-box}
+  .wrap{max-width:var(--maxw);margin:26px auto;padding:18px;display:grid;grid-template-columns:320px 1fr;gap:18px;align-items:start}
+  /* Sidebar */
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);min-height:64vh;display:flex;flex-direction:column}
+  .brand{display:flex;gap:12px;align-items:center;margin-bottom:8px}
+  .logo{width:52px;height:52px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#042b2a;font-size:18px}
+  .brand h1{margin:0;font-size:16px}
+  .brand p{margin:0;color:var(--muted);font-size:12px}
+  .controls{display:flex;gap:8px;margin:12px 0}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+  .search{display:flex;gap:8px;margin-top:6px;align-items:center}
+  .search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+  .chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+  .chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+  .chat-item:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(2,6,23,0.35)}
+  .chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+  .chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+  .chat-meta h4{margin:0;font-size:13px}
+  .chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+  .sidebar .footer{display:flex;align-items:center;justify-content:space-between;margin-top:12px;font-size:13px;color:var(--muted)}
+
+  /* Panel */
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);min-height:64vh;display:flex;flex-direction:column}
+  .panel-header{display:flex;align-items:center;justify-content:space-between}
+  .panel-header .left{display:flex;gap:12px;align-items:center}
+  .panel-header h2{margin:0;font-size:18px}
+  .panel-actions{display:flex;gap:8px}
+  .messages{flex:1;margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+  .bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+  .bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+  .bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between;gap:8px}
+  .compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+  textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:72px;resize:none;font-size:14px}
+  .compose .right{display:flex;flex-direction:column;gap:8px}
+  .tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+
+  /* chips & suggestions */
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+  .chip:hover{transform:translateY(-3px)}
+
+  /* typing animation (dots) */
+  .typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+  .typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.12s}
+  .typing span:nth-child(3){animation-delay:.24s}
+  @keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+
+  /* small screens */
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+
+  /* helpers */
+  .muted{color:var(--muted)}
+  .danger{color:var(--danger)}
+  .fade-in{animation:fadeIn .28s ease both}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .kbd{background:rgba(255,255,255,0.03);padding:4px 8px;border-radius:6px;font-size:12px;color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Asistente IA Avanzado (demo)">
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente IA">AID</div>
+      <div>
+        <h1 id="brandName">AIDEN — Asistente (Demo)</h1>
+        <p id="brandTag">Local • Sin backend • Guardado en LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Nuevo chat (Alt+N)">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chat (.json)">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search">
+      <input id="searchChats" placeholder="Buscar chats, mensajes o palabras clave..." aria-label="Buscar chats" />
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite"></div>
+
+    <div class="footer" style="margin-top:12px">
+      <div>
+        <div class="muted">Límite respuestas/chat: <span id="limitDisplay">8</span></div>
+        <div style="margin-top:6px" class="tiny"><span class="kbd">Alt+N</span> nuevo · <span class="kbd">Enter</span> enviar</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <button id="decLimit" class="btn" title="Disminuir límite">-</button>
+        <button id="incLimit" class="btn" title="Aumentar límite">+</button>
+        <button id="resetLocal" class="btn" title="Borrar datos locales">Reset</button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel" aria-live="polite">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar historial">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea">
+      <div class="muted">Crea un chat y escribe para probar. Ejemplos: "hola", "cuéntame un chiste", "tengo un problema con mi código".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Entrada de mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end">
+            <div style="display:flex;gap:6px">
+              <button id="undoBtn" class="btn" title="Deshacer (Ctrl+Z)">↶</button>
+              <button id="redoBtn" class="btn" title="Rehacer (Ctrl+Y)">↷</button>
+              <button id="ttsToggle" class="btn" title="Text-to-Speech: activar/desactivar">🔊</button>
+            </div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ============================
+   AIDEN — Asistente IA Demo
+   Single-file (HTML/CSS/JS)
+   Mejorado y comentado
+   ============================ */
+
+/* --------------------------
+   Config / Estado persistente
+   -------------------------- */
+const STORAGE_KEY = 'aid_demo_v3';
+const DEFAULT_LIMIT = 8;
+
+/* --------------------------
+   Respuestas (más ricas)
+   - id, category, keywords, synonyms, replies, priority
+   - replies pueden ser string o función que devuelva string
+   -------------------------- */
+const RESPONDERS = [
+  // Sociales / saludos
+  { id:'greeting', category:'social', keywords:['hola','buenas','buenos','hey','saludo'], synonyms:['holaa','holis','buenas tardes','buenos dias'], replies:[
+    '¡Hola! Soy AIDEN, tu asistente local. ¿En qué te puedo ayudar hoy?',
+    '¡Hey! Encantado. Puedo ayudarte con código, ideas, chistes o simplemente charlar. ¿Qué prefieres?'
+  ], priority:18},
+
+  // Presentación
+  { id:'whoareyou', category:'social', keywords:['quien eres','quién eres','nombre','te llamas','eres'], synonyms:['tu nombre','como te llamas'], replies:[
+    'Me llamo AIDEN: asistente demo que corre en tu navegador. No uso backend, todo queda local.',
+    'Soy AIDEN — puedes renombrarme editando el código. Puedo darte código, ideas, explicar errores o contar chistes.'
+  ], priority:16},
+
+  // Ayuda general
+  { id:'help', category:'utility', keywords:['ayuda','ayúdame','auxilio','soporte','como hacer','cómo hacer'], synonyms:['necesito ayuda','puedes ayudarme'], replies:[
+    'Dime el tema: puedo crear ejemplos de código, pasos prácticos, o plantillas. Ejemplo: "ayuda con fetch javascript".',
+    'Puedo: 1) Explicar conceptos 2) Escribir ejemplos 3) Depurar errores (pega el error). ¿Qué quieres ahora?'
+  ], priority:16},
+
+  // Código / bug
+  { id:'code_bug', category:'tech', keywords:['error','bug','falla','stack','exception','crash','traceback','segfault'], synonyms:['no funciona','se rompe','excepción','mensaje de error'], replies:[
+    'Pega aquí el mensaje de error (o describe qué sucede) y te doy pasos para depurar.',
+    'Consejos rápidos: 1) Aísla el problema 2) Reproduce con datos mínimos 3) Añade logs o breakpoints. Si quieres, pásame el stacktrace.'
+  ], priority:15},
+
+  // Proyecto / ideas
+  { id:'project', category:'creative', keywords:['proyecto','idea','juego','app','aplicación','web','sitio'], synonyms:['proponer','plan','diseño','propuesta'], replies:[
+    (t)=>`Genial. ¿Buscas ideas rápidas o una estructura detallada? Puedo generar un plan (MVP), stack recomendado y roadmap. Texto recibido: "${t.slice(0,80)}..."`,
+    'Propuesta rápida:\n- Objetivo\n- Público objetivo\n- Tecnologías\n- MVP (funciones mínimas). Dime cuál quieres que desarrolle.'
+  ], priority:12},
+
+  // Chistes / entretenimiento
+  { id:'joke', category:'fun', keywords:['chiste','broma','gracioso','risa','humor'], synonyms:['cuenta un chiste','hazme reir','dime un chiste'], replies:[
+    '— ¿Por qué los programadores confunden Halloween y Navidad? Porque OCT 31 == DEC 25.',
+    '— ¿Qué le dice un servidor a otro? "¿Te respondo en JSON o en bonito?" (malo, pero gracioso 😅)'
+  ], priority:10},
+
+  // Estado emocional
+  { id:'emotions', category:'emotional', keywords:['triste','deprimido','aburrido','feliz','enojado','estresado','ansioso'], synonyms:['no estoy bien','me siento mal','me aburro','me siento triste'], replies:[
+    'Siento que te sientas así. Si quieres, cuéntame más para proponerte opciones (actividades, recursos o apoyo).',
+    'Si tu situación es seria o peligrosa, te animo a contactar a alguien de confianza o profesionales. Puedo darte pasos para buscar ayuda.'
+  ], priority:12},
+
+  // Hora local
+  { id:'time', category:'utility', keywords:['hora','tiempo','qué hora','hora es','reloj'], synonyms:['hora actual','qué hora son','hora local'], replies:[
+    () => `La hora local en tu navegador es ${new Date().toLocaleTimeString()}.`,
+    'Si necesitas convertir zonas horarias, dime origen y destino y te doy la fórmula / ejemplo en código.'
+  ], priority:8},
+
+  // Clima (sin datos reales)
+  { id:'weather', category:'utility', keywords:['clima','tiempo meteorologico','temperatura','lluvia','sol'], synonyms:['va a llover','qué clima'], replies:[
+    'No tengo acceso directo al clima en esta demo. Puedo mostrarte cómo consultar una API (OpenWeatherMap) con ejemplo en JavaScript.',
+    'Dime tu ciudad y te doy una plantilla fetch para obtener el tiempo desde una API pública.'
+  ], priority:7},
+
+  // Lista de comandos / ayuda rápida
+  { id:'commands', category:'utility', keywords:['lista de comandos','comandos','ejemplos','qué puedes hacer','qué haces'], synonyms:['ayuda comandos','ejemplos de uso'], replies:[
+    'Ejemplos: "hola", "ayuda", "tengo un bug", "cuéntame un chiste", "proyecto de juego", "hora", "clima". También puedes importar/exportar chats desde la barra lateral.',
+    'Puedes: renombrar chats, exportar/importar JSON, ajustar el límite de respuestas o activar text-to-speech (botón 🔊).'
+  ], priority:9},
+
+  // Despedida
+  { id:'goodbye', category:'social', keywords:['adios','hasta luego','bye','nos vemos','chao','chau'], synonyms:['hasta pronto','nos vemos pronto'], replies:[
+    '¡Hasta luego! Aquí estaré cuando quieras seguir hablando.',
+    'Cuídate — vuelve cuando quieras, que siempre estaré disponible en tu navegador.'
+  ], priority:7},
+
+  // Fallback
+  { id:'default', category:'fallback', keywords:[], synonyms:[], replies:[
+    'Lo siento, no he entendido del todo. Prueba con palabras clave como "ayuda", "chiste", "bug", "proyecto" o "hora".',
+    'Si quieres, escribe "lista de comandos" para ver ejemplos de cosas que puedo entender.'
+  ], priority:1}
+];
+
+/* --------------------------
+   Estado en memoria
+   -------------------------- */
+let chats = []; // {id,name,messages:[],assistantCount,created}
+let activeChatId = null;
+let assistantLimit = DEFAULT_LIMIT;
+let undoStack = []; // acciones para deshacer
+let redoStack = [];
+let ttsEnabled = false; // speech synthesis toggle
+
+/* --------------------------
+   DOM refs
+   -------------------------- */
+const qs = sel => document.querySelector(sel);
+const chatsList = qs('#chatsList');
+const newChatBtn = qs('#newChatBtn');
+const importBtn = qs('#importBtn');
+const exportAllBtn = qs('#exportAllBtn');
+const searchChats = qs('#searchChats');
+const chatCount = qs('#chatCount');
+const panelTitle = qs('#panelTitle');
+const messagesArea = qs('#messagesArea');
+const inputTxt = qs('#inputTxt');
+const sendBtn = qs('#sendBtn');
+const clearChatBtn = qs('#clearChatBtn');
+const deleteChatBtn = qs('#deleteChatBtn');
+const renameChatBtn = qs('#renameChatBtn');
+const decLimitBtn = qs('#decLimit');
+const incLimitBtn = qs('#incLimit');
+const limitDisplay = qs('#limitDisplay');
+const responsesLeft = qs('#responsesLeft');
+const suggestions = qs('#suggestions');
+const charCount = qs('#charCount');
+const undoBtn = qs('#undoBtn');
+const redoBtn = qs('#redoBtn');
+const ttsToggleBtn = qs('#ttsToggle');
+
+/* --------------------------
+   Utilidades
+   -------------------------- */
+function uid(prefix='id'){ return `${prefix}_${Math.random().toString(36).slice(2,9)}`; }
+function now(){ return new Date().toISOString(); }
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({chats,assistantLimit,ttsEnabled})); }
+function load(){
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if(!raw) return;
+  try{
+    const obj = JSON.parse(raw);
+    chats = obj.chats || [];
+    assistantLimit = obj.assistantLimit || DEFAULT_LIMIT;
+    ttsEnabled = !!obj.ttsEnabled;
+  } catch(e){ console.warn('Error cargando storage', e); }
+}
+
+/* --------------------------
+   Chat operations
+   -------------------------- */
+function createChat(name){
+  const c = { id: uid('chat'), name: name || `Chat ${chats.length+1}`, messages: [], assistantCount:0, created:now() };
+  chats.unshift(c);
+  activeChatId = c.id;
+  pushUndo({ type:'createChat', chatId:c.id });
+  save();
+  renderChats();
+  renderActiveChat();
+  return c;
+}
+function deleteChat(id){
+  const idx = chats.findIndex(x => x.id === id);
+  if(idx === -1) return;
+  const removed = chats.splice(idx,1)[0];
+  pushUndo({ type:'deleteChat', chat: removed, idx });
+  if(activeChatId === id) activeChatId = chats.length ? chats[0].id : null;
+  save();
+  renderChats();
+  renderActiveChat();
+}
+function renameChat(id, newName){
+  const c = chats.find(x=>x.id===id); if(!c) return;
+  const old = c.name;
+  c.name = newName;
+  pushUndo({ type:'renameChat', chatId:id, oldName:old, newName });
+  save(); renderChats(); renderActiveChat();
+}
+function clearChat(id){
+  const c = chats.find(x=>x.id===id); if(!c) return;
+  const snapshot = JSON.parse(JSON.stringify(c.messages));
+  c.messages = []; c.assistantCount = 0;
+  pushUndo({ type:'clearChat', chatId:id, snapshot });
+  save(); renderActiveChat();
+}
+
+/* --------------------------
+   Message ops
+   -------------------------- */
+function addUserMessage(chatId, text){
+  if(!text) return;
+  const c = chats.find(x=>x.id===chatId); if(!c) return;
+  const msg = { id: uid('m'), role:'user', text, ts: now() };
+  c.messages.push(msg);
+  pushUndo({ type:'addMessage', chatId, msg });
+  save(); renderActiveChat();
+}
+function addAssistantMessage(chatId, text){
+  const c = chats.find(x=>x.id===chatId); if(!c) return;
+  const msg = { id: uid('m'), role:'assistant', text, ts: now() };
+  c.messages.push(msg);
+  c.assistantCount = (c.assistantCount||0) + 1;
+  pushUndo({ type:'addMessage', chatId, msg });
+  save(); renderActiveChat();
+}
+function deleteMessage(chatId, msgId){
+  const c = chats.find(x=>x.id===chatId); if(!c) return;
+  const idx = c.messages.findIndex(m => m.id === msgId); if(idx === -1) return;
+  const removed = c.messages.splice(idx,1)[0];
+  if(removed.role === 'assistant') c.assistantCount = Math.max(0,(c.assistantCount||0)-1);
+  pushUndo({ type:'deleteMessage', chatId, msg: removed, idx });
+  save(); renderActiveChat();
+}
+
+/* --------------------------
+   Normalize / matcher
+   -------------------------- */
+function normalizeText(s=''){
+  return String(s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^\w\s]/g,' ');
+}
+function tokenSet(s=''){
+  return new Set(normalizeText(s).split(/\s+/).filter(Boolean));
+}
+
+// Detect best responder by scoring matches (keywords & synonyms & priority)
+function detectResponder(text){
+  if(!text) return RESPONDERS.find(r => r.id === 'default');
+  const tokens = tokenSet(text);
+  let best = null;
+  let bestScore = -Infinity;
+  const full = normalizeText(text);
+  for(const r of RESPONDERS){
+    let score = 0;
+    // keywords (exact token matches)
+    for(const k of (r.keywords||[])){
+      if(tokens.has(normalizeText(k))) score += 3;
+    }
+    // synonyms (phrase match)
+    for(const s of (r.synonyms||[])){
+      if(full.includes(normalizeText(s))) score += 2;
+    }
+    // fuzzy: if any keyword appears as substring
+    for(const k of (r.keywords||[])){
+      if(full.includes(normalizeText(k))) score += 1;
+    }
+    // boost by priority
+    score += (r.priority || 0);
+    if(score > bestScore){ bestScore = score; best = r; }
+  }
+  // if no confident match, fallback
+  if(!best || bestScore <= 1) return RESPONDERS.find(r=>r.category==='fallback') || RESPONDERS[RESPONDERS.length-1];
+  return best;
+}
+
+/* --------------------------
+   Reply selection
+   -------------------------- */
+function chooseReply(responder, userText=''){
+  if(!responder) responder = RESPONDERS.find(r=>r.id==='default');
+  const opts = responder.replies || [];
+  const pick = opts[Math.floor(Math.random()*opts.length)];
+  if(typeof pick === 'function') return pick(userText);
+  return pick;
+}
+
+/* --------------------------
+   Typing simulation + commit
+   - creates a temporary bubble, types char-by-char
+   - commits assistant message to chat (and optionally TTS)
+   -------------------------- */
+async function simulateTypingAndCommit(chatId, finalText){
+  // placeholder bubble
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble assistant fade-in';
+  bubble.setAttribute('data-temp','true');
+  bubble.innerHTML = '<div class="muted">AIDEN está escribiendo</div><div class="typing"><span></span><span></span><span></span></div>';
+  messagesArea.appendChild(bubble);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+
+  // short thinking pause
+  await sleep(400 + Math.random()*700);
+
+  // replace with text container
+  bubble.innerHTML = '';
+  const textEl = document.createElement('div'); bubble.appendChild(textEl);
+
+  // typing speed scale (longer messages: faster avg)
+  const chars = finalText.split('');
+  const base = Math.max(4, Math.min(18, 12 - Math.floor(chars.length/80)));
+  for(let i=0;i<chars.length;i++){
+    textEl.textContent += chars[i];
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+    await sleep(base + Math.random()*10);
+  }
+
+  // footer meta
+  const meta = document.createElement('div'); meta.className='meta';
+  meta.innerHTML = `<span>${new Date().toLocaleTimeString()}</span>
+                    <span><button class='btn' title='Borrar' data-del='${Date.now()}'>🗑</button></span>`;
+  bubble.appendChild(meta);
+
+  // commit to model (persist)
+  const c = chats.find(x=>x.id===chatId);
+  if(c){
+    const msg = { id: uid('m'), role:'assistant', text: finalText, ts: now() };
+    c.messages.push(msg);
+    c.assistantCount = (c.assistantCount||0) + 1;
+    pushUndo({ type:'addMessage', chatId, msg });
+    save();
+  }
+
+  // optional TTS
+  if(ttsEnabled && 'speechSynthesis' in window){
+    try{
+      const utter = new SpeechSynthesisUtterance(finalText);
+      utter.lang = 'es-ES';
+      speechSynthesis.cancel(); // stop previous
+      speechSynthesis.speak(utter);
+    } catch(e){ console.warn('TTS error', e); }
+  }
+
+  // remove temp attribute and add delete handler
+  bubble.removeAttribute('data-temp');
+  // attach delete (we add a simple handler to delete the last assistant message on click of that button)
+  bubble.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // find last assistant msg in this chat and delete it
+      const c2 = chats.find(x=>x.id===chatId);
+      if(!c2) return;
+      for(let i=c2.messages.length-1;i>=0;i--){
+        if(c2.messages[i].role === 'assistant'){
+          deleteMessage(chatId, c2.messages[i].id);
+          break;
+        }
+      }
+    });
+  });
+
+  renderActiveChat();
+}
+
+/* --------------------------
+   Sleep helper
+   -------------------------- */
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/* --------------------------
+   Rendering
+   -------------------------- */
+function renderChats(filter=''){
+  chatsList.innerHTML = '';
+  const f = normalizeText(filter || '');
+  for(const c of chats){
+    // filter by name or messages
+    if(f){
+      const byName = normalizeText(c.name).includes(f);
+      const byMsg = (c.messages||[]).some(m => normalizeText(m.text).includes(f));
+      if(!byName && !byMsg) continue;
+    }
+    const item = document.createElement('div'); item.className = 'chat-item fade-in';
+    if(c.id === activeChatId) item.classList.add('active');
+    item.addEventListener('click', () => { activeChatId = c.id; renderChats(); renderActiveChat(); });
+    const thumb = document.createElement('div'); thumb.className = 'chat-thumb';
+    thumb.textContent = c.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+    const meta = document.createElement('div'); meta.className = 'chat-meta';
+    const h4 = document.createElement('h4'); h4.textContent = c.name;
+    const p = document.createElement('p'); p.textContent = `${c.messages.length} mensajes · ${c.assistantCount||0} respuestas`;
+    meta.appendChild(h4); meta.appendChild(p);
+
+    const actions = document.createElement('div'); actions.style.marginLeft='auto'; actions.style.display='flex'; actions.style.gap='6px';
+    const renameBtn = document.createElement('button'); renameBtn.className='btn'; renameBtn.textContent='✎'; renameBtn.title='Renombrar';
+    renameBtn.addEventListener('click', (ev) => { ev.stopPropagation(); const nn = prompt('Nuevo nombre', c.name); if(nn) renameChat(c.id, nn.trim()); });
+    const delBtn = document.createElement('button'); delBtn.className='btn'; delBtn.textContent='🗑'; delBtn.title='Eliminar';
+    delBtn.addEventListener('click', (ev) => { ev.stopPropagation(); if(confirm('Eliminar chat "'+c.name+'"?')) deleteChat(c.id); });
+    actions.appendChild(renameBtn); actions.appendChild(delBtn);
+
+    item.appendChild(thumb); item.appendChild(meta); item.appendChild(actions);
+    chatsList.appendChild(item);
+  }
+  chatCount.textContent = chats.length;
+}
+
+function renderActiveChat(){
+  const c = chats.find(x=>x.id === activeChatId);
+  if(!c){
+    panelTitle.textContent = 'Selecciona o crea un chat';
+    messagesArea.innerHTML = '<div class="muted">No hay chat activo. Crea uno nuevo para empezar.</div>';
+    deleteChatBtn.disabled = true; renameChatBtn.disabled = true; clearChatBtn.disabled = true;
+    responsesLeft.textContent = '';
+    renderSuggestions();
+    return;
+  }
+  panelTitle.textContent = c.name;
+  deleteChatBtn.disabled = false; renameChatBtn.disabled = false; clearChatBtn.disabled = false;
+  const left = Math.max(0, assistantLimit - (c.assistantCount||0));
+  responsesLeft.textContent = `${left} respuestas restantes (límite ${assistantLimit})`;
+  messagesArea.innerHTML = '';
+
+  if(!c.messages.length){
+    messagesArea.innerHTML = '<div class="muted">Chat vacío. Escribe algo para empezar — prueba: "hola", "ayuda", "cuéntame un chiste".</div>';
+  }
+
+  for(const m of c.messages){
+    const b = document.createElement('div'); b.className = 'bubble ' + (m.role === 'user' ? 'user' : 'assistant');
+    b.setAttribute('data-id', m.id);
+    b.innerHTML = `<div>${escapeHtml(m.text).replace(/\n/g,'<br/>')}</div>`;
+    const meta = document.createElement('div'); meta.className='meta';
+    const timeStr = new Date(m.ts).toLocaleString();
+    meta.innerHTML = `<span>${timeStr}</span>
+                      <span>
+                        <button class='btn' title='Borrar mensaje' data-del='${m.id}'>🗑</button>
+                      </span>`;
+    b.appendChild(meta);
+    messagesArea.appendChild(b);
+  }
+
+  // attach delete message handlers
+  messagesArea.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      const msgId = btn.getAttribute('data-del');
+      if(confirm('Borrar este mensaje?')) deleteMessage(activeChatId, msgId);
+    });
+  });
+
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+  renderSuggestions();
+}
+
+/* --------------------------
+   Escape helpers
+   -------------------------- */
+function escapeHtml(s){
+  if(!s) return '';
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+/* --------------------------
+   Suggestions / chips
+   -------------------------- */
+const SUGGESTIONS = ['hola','ayuda','cuéntame un chiste','tengo un bug','proyecto de juego','estoy triste','hora','clima','lista de comandos','explica closure js'];
+function renderSuggestions(){
+  suggestions.innerHTML = '';
+  for(const s of SUGGESTIONS){
+    const chip = document.createElement('div'); chip.className = 'chip'; chip.textContent = s;
+    chip.addEventListener('click', () => { inputTxt.value = s; inputTxt.focus(); updateChar(); });
+    suggestions.appendChild(chip);
+  }
+}
+
+/* --------------------------
+   Send flow (entry point)
+   -------------------------- */
+async function handleSend(){
+  const text = inputTxt.value.trim();
+  if(!text) return;
+  if(!activeChatId){
+    const c = createChat('Chat rápido');
+    activeChatId = c.id;
+    renderChats();
+  }
+  const c = chats.find(x => x.id === activeChatId);
+  if(!c) return;
+
+  // add user msg
+  addUserMessage(c.id, text);
+  inputTxt.value = ''; updateChar();
+
+  // check assistant limit
+  if((c.assistantCount||0) >= assistantLimit){
+    await simulateTypingAndCommit(c.id, 'He alcanzado el límite de respuestas en este chat. Puedes crear uno nuevo o aumentar el límite.');
+    return;
+  }
+
+  // detect responder
+  const responder = detectResponder(text);
+  const reply = chooseReply(responder, text);
+
+  // commit with typing simulation
+  await simulateTypingAndCommit(c.id, reply);
+}
+
+/* --------------------------
+   Event bindings
+   -------------------------- */
+newChatBtn.addEventListener('click', ()=> {
+  const name = prompt('Nombre del nuevo chat','Conversación '+(chats.length+1));
+  if(name) createChat(name.trim()); else createChat();
+});
+importBtn.addEventListener('click', ()=> {
+  const input = document.createElement('input'); input.type = 'file'; input.accept = '.json';
+  input.onchange = (e) => {
+    const file = e.target.files[0]; if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try{
+        const obj = JSON.parse(reader.result);
+        if(obj && obj.messages && Array.isArray(obj.messages)){
+          const c = createChat(obj.name || 'Importado');
+          // validate messages shape minimally
+          c.messages = obj.messages.map(m => ({ id: m.id || uid('m'), role: m.role || 'user', text: m.text || '', ts: m.ts || now() }));
+          c.assistantCount = obj.assistantCount || c.messages.filter(m=>m.role==='assistant').length || 0;
+          save();
+          renderChats(); renderActiveChat();
+          alert('Importado OK');
+        } else {
+          alert('Fichero no válido (esperado formato de chat).');
+        }
+      } catch(err){
+        alert('Error leyendo fichero: ' + err.message);
+      }
+    };
+    reader.readAsText(file);
+  };
+  input.click();
+});
+exportAllBtn.addEventListener('click', ()=> {
+  const blob = new Blob([JSON.stringify({chats,assistantLimit},null,2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href = url; a.download = 'aid_chats_export.json';
+  document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+});
+
+searchChats.addEventListener('input', (e) => renderChats(e.target.value));
+sendBtn.addEventListener('click', handleSend);
+inputTxt.addEventListener('keydown', (ev) => {
+  if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); handleSend(); }
+});
+inputTxt.addEventListener('input', updateChar);
+
+decLimitBtn.addEventListener('click', () => { assistantLimit = Math.max(1, assistantLimit-1); limitDisplay.textContent = assistantLimit; save(); renderActiveChat(); });
+incLimitBtn.addEventListener('click', () => { assistantLimit = Math.min(200, assistantLimit+1); limitDisplay.textContent = assistantLimit; save(); renderActiveChat(); });
+
+clearChatBtn.addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); if(confirm('Vaciar historial?')) clearChat(activeChatId); });
+renameChatBtn.addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); const c = chats.find(x=>x.id===activeChatId); const nn = prompt('Nuevo nombre', c.name); if(nn) renameChat(c.id, nn.trim()); });
+deleteChatBtn.addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); const c = chats.find(x=>x.id===activeChatId); if(confirm('Eliminar chat "'+c.name+'"?')) deleteChat(c.id); });
+
+undoBtn.addEventListener('click', ()=> undo());
+redoBtn.addEventListener('click', ()=> redo());
+
+ttsToggleBtn.addEventListener('click', () => {
+  ttsEnabled = !ttsEnabled;
+  ttsToggleBtn.classList.toggle('primary', ttsEnabled);
+  ttsToggleBtn.textContent = ttsEnabled ? '🔊 ON' : '🔊';
+  save();
+});
+
+document.getElementById('resetLocal').addEventListener('click', ()=> {
+  if(confirm('Borrar todos los datos locales?')) { localStorage.removeItem(STORAGE_KEY); location.reload(); }
+});
+
+/* --------------------------
+   Undo / Redo (completo)
+   - registro de acciones y su reversión
+   -------------------------- */
+function pushUndo(action){
+  undoStack.push(action);
+  if(undoStack.length > 200) undoStack.shift();
+  redoStack = [];
+}
+function undo(){
+  const a = undoStack.pop();
+  if(!a) return alert('Nada que deshacer');
+  // manejar tipos
+  switch(a.type){
+    case 'addMessage': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      const idx = c.messages.findIndex(m => m.id === a.msg.id);
+      if(idx !== -1) c.messages.splice(idx,1);
+      if(a.msg.role === 'assistant') c.assistantCount = Math.max(0,(c.assistantCount||0)-1);
+      redoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    case 'deleteMessage': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.messages.splice(a.idx, 0, a.msg);
+      if(a.msg.role === 'assistant') c.assistantCount = (c.assistantCount||0) + 1;
+      redoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    case 'createChat': {
+      const idx = chats.findIndex(x=>x.id === a.chatId);
+      if(idx !== -1){
+        const removed = chats.splice(idx,1)[0];
+        redoStack.push(a);
+        // also if active was removed adjust
+        if(activeChatId === a.chatId) activeChatId = chats.length ? chats[0].id : null;
+        save(); renderChats(); renderActiveChat();
+      }
+      break;
+    }
+    case 'deleteChat': {
+      chats.splice(a.idx, 0, a.chat);
+      redoStack.push(a);
+      save(); renderChats(); renderActiveChat();
+      break;
+    }
+    case 'renameChat': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.name = a.oldName;
+      redoStack.push(a);
+      save(); renderChats(); renderActiveChat();
+      break;
+    }
+    case 'clearChat': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.messages = a.snapshot;
+      c.assistantCount = c.messages.filter(m=>m.role==='assistant').length;
+      redoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    default:
+      alert('Acción de deshacer no soportada: ' + a.type);
+  }
+}
+function redo(){
+  const a = redoStack.pop();
+  if(!a) return alert('Nada que rehacer');
+  switch(a.type){
+    case 'addMessage': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.messages.push(a.msg);
+      if(a.msg.role === 'assistant') c.assistantCount = (c.assistantCount||0) + 1;
+      undoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    case 'deleteMessage': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      const idx = c.messages.findIndex(m => m.id === a.msg.id);
+      if(idx !== -1) c.messages.splice(idx,1);
+      if(a.msg.role === 'assistant') c.assistantCount = Math.max(0,(c.assistantCount||0)-1);
+      undoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    case 'createChat': {
+      // recreate chat
+      const c = { id: a.chatId, name: 'Chat (restored)', messages: [], assistantCount:0, created: now() };
+      chats.unshift(c);
+      undoStack.push(a);
+      save(); renderChats(); renderActiveChat();
+      break;
+    }
+    case 'deleteChat': {
+      // remove again
+      const idx = chats.findIndex(x=>x.id===a.chat.id);
+      if(idx !== -1) {
+        chats.splice(idx,1);
+        undoStack.push(a);
+        save(); renderChats(); renderActiveChat();
+      }
+      break;
+    }
+    case 'renameChat': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.name = a.newName;
+      undoStack.push(a);
+      save(); renderChats(); renderActiveChat();
+      break;
+    }
+    case 'clearChat': {
+      const c = chats.find(x=>x.id===a.chatId); if(!c) break;
+      c.messages = [];
+      c.assistantCount = 0;
+      undoStack.push(a);
+      save(); renderActiveChat();
+      break;
+    }
+    default:
+      alert('Acción de rehacer no soportada: ' + a.type);
+  }
+}
+
+/* --------------------------
+   Ensure default welcome chat
+   -------------------------- */
+function ensureDefault(){
+  if(chats.length === 0){
+    const c = createChat('Bienvenida');
+    // add a friendly assistant welcome message
+    c.messages.push({ id: uid('m'), role:'assistant', text:'¡Hola! Soy AIDEN — asistente demo. Prueba comandos como "ayuda", "chiste", "tengo un bug", o "proyecto de juego".', ts: now() });
+    c.assistantCount = 1;
+    save();
+  }
+}
+
+/* --------------------------
+   UI helpers
+   -------------------------- */
+function updateChar(){
+  charCount.textContent = inputTxt.value.length + ' caracteres';
+}
+
+/* --------------------------
+   Keyboard shortcuts
+   -------------------------- */
+document.addEventListener('keydown', (ev) => {
+  if(ev.altKey && ev.key.toLowerCase() === 'n') newChatBtn.click();
+  if(ev.ctrlKey && ev.key.toLowerCase() === 'z') { ev.preventDefault(); undo(); }
+  if(ev.ctrlKey && ev.key.toLowerCase() === 'y') { ev.preventDefault(); redo(); }
+  if(ev.altKey && ev.key.toLowerCase() === 'k') inputTxt.focus();
+});
+
+/* --------------------------
+   Init
+   -------------------------- */
+(function init(){
+  load();
+  ensureDefault();
+  limitDisplay.textContent = assistantLimit;
+  ttsToggleBtn.classList.toggle('primary', ttsEnabled);
+  ttsToggleBtn.textContent = ttsEnabled ? '🔊 ON' : '🔊';
+  renderChats();
+  if(!activeChatId && chats[0]) activeChatId = chats[0].id;
+  renderActiveChat();
+  renderSuggestions();
+})();
+
+/* --------------------------
+   Expose for debugging
+   -------------------------- */
+window.AIDEN = { chats, save, load, createChat, deleteChat, renameChat, detectResponder };
+</script>
+</body>
+</html>
+

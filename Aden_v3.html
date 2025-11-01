@@ -1,0 +1,744 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso (v3+ con FAQ)</title>
+<style>
+/* =========================================================================
+   Aden v3+ con Panel FAQ desplegable
+   - Mantiene la estética anterior (oscuro, limpio).
+   - Añade drawer/floating button en esquina con todas las preguntas.
+   ========================================================================= */
+
+:root{
+  --bg-0:#07121a;
+  --bg-1:#0e1a27;
+  --panel:#11202b;
+  --glass: rgba(255,255,255,0.03);
+  --muted:#9fb0c6;
+  --accent-1:#57e4b8;
+  --accent-2:#6fb7ff;
+  --danger:#ff6b6b;
+  --card:#0b1720;
+  --radius:14px;
+  --shadow: 0 14px 36px rgba(2,8,23,0.6);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color-scheme: dark;
+}
+
+/* Base layout (copiado / adaptado de la versión previa) */
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:760px}
+
+/* Sidebar */
+.sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#022b2a;font-size:18px;box-shadow:0 6px 18px rgba(87,228,184,0.06)}
+.brand h1{margin:0;font-size:16px}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+.controls{display:flex;gap:8px;margin-top:12px}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+.btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03)}
+.btn.small{padding:6px 8px;font-size:12px}
+
+/* Search / chats list */
+.search{display:flex;gap:8px;margin-top:12px;align-items:center}
+.search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+.meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+.chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+.chat-item:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,0.35)}
+.chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+.chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+.chat-meta h4{margin:0;font-size:13px}
+.chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+
+/* Panel principal */
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.panel-header{display:flex;align-items:center;justify-content:space-between}
+.panel-header .left{display:flex;gap:12px;align-items:center}
+.panel-header h2{margin:0;font-size:18px}
+.panel-actions{display:flex;gap:8px}
+.messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+.bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+.bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+.bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+.compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+.compose .right{display:flex;flex-direction:column;gap:8px}
+.tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+.chip:hover{transform:translateY(-3px)}
+.typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+.typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.12s}
+.typing span:nth-child(3){animation-delay:.24s}
+@keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+.muted{color:var(--muted)}
+.danger{color:var(--danger)}
+.fade-in{animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.settings-panel{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.02)}
+.toggle{display:flex;align-items:center;gap:10px}
+.kbd{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:6px;font-size:12px}
+.footer-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-top:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+.small{font-size:12px;color:var(--muted)}
+.accent{color:var(--accent-1)}
+.search-highlight{background:linear-gradient(90deg, rgba(111,183,255,0.12), rgba(87,228,184,0.06));padding:4px 8px;border-radius:8px}
+.voice-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.voice-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.voice-btn.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#052a26}
+[tabindex="0"]:focus{outline:2px solid rgba(111,183,255,0.08)}
+.hr{border-top:1px dashed rgba(255,255,255,0.02);margin:10px 0}
+.center{display:flex;align-items:center;justify-content:center}
+@media (min-width:1400px){.wrap{max-width:1400px}}
+
+/* =========================
+   FAQ Drawer & Floating Button
+   ========================= */
+
+/* floating button bottom-right */
+#faqToggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  color:#052a26;font-weight:800;border:none;box-shadow:0 12px 30px rgba(2,8,23,0.6);
+  cursor:pointer;z-index:1200;
+}
+
+/* drawer */
+#faqDrawer {
+  position: fixed;
+  right: 18px;
+  bottom: 86px; /* above the button */
+  width: 380px;
+  max-height: 70vh;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:12px;
+  box-shadow: 0 20px 60px rgba(2,8,23,0.6);
+  z-index:1200;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transform: translateY(12px) scale(0.98);
+  opacity:0;
+  transition: all .18s ease;
+  pointer-events:none;
+  border:1px solid rgba(255,255,255,0.02);
+}
+
+/* when open */
+#faqDrawer.open { transform: none; opacity:1; pointer-events:auto; }
+
+/* header inside drawer */
+#faqDrawer .header { padding:12px 14px; border-bottom:1px dashed rgba(255,255,255,0.02); display:flex;justify-content:space-between;align-items:center;}
+#faqDrawer .header .title{font-weight:700}
+#faqDrawer .header .muted{font-size:12px;color:var(--muted)}
+
+/* search inside drawer */
+#faqSearch { width: calc(100% - 28px); margin:8px 14px; padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03); color:var(--muted) }
+
+/* list */
+#faqList { overflow:auto; padding:10px 8px; display:flex; flex-direction:column; gap:8px; }
+
+/* each faq item */
+.faq-item { padding:10px; border-radius:10px; background: rgba(255,255,255,0.01); display:flex; flex-direction:column; gap:6px; border:1px solid rgba(255,255,255,0.02); }
+.faq-item .q { font-weight:700; font-size:13px; }
+.faq-item .a { font-size:13px; color:var(--muted); }
+.faq-item .controls { display:flex; gap:8px; margin-top:6px; }
+.faq-item .controls button { padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--muted); cursor:pointer; font-size:13px }
+.faq-empty { padding:14px; text-align:center; color:var(--muted) }
+
+/* small footer inside drawer */
+#faqDrawer .footer { padding:10px 12px; border-top:1px dashed rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted) }
+
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">ADN</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Crear nuevo chat">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chats JSON">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search" aria-label="Buscar chats">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." aria-label="Buscar chats"/>
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite" aria-label="Lista de chats"></div>
+
+    <div class="settings-panel" aria-label="Ajustes rápidos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Límite respuestas/chat</div>
+          <div class="muted" id="limitDisplay">12</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="decLimit" class="btn">-</button>
+          <button id="incLimit" class="btn">+</button>
+          <button id="resetLocal" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div>
+          <div class="small">Voz &mdash; Lector</div>
+          <div class="muted">Sintetizador de voz local (SpeechSynthesis)</div>
+        </div>
+        <div>
+          <label class="toggle">
+            <input id="voiceMasterToggle" type="checkbox" aria-label="Activar/Desactivar voz"/>
+            <span class="kbd">Activar</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="voice-row" aria-label="Selector de voz">
+        <button id="voiceAuto" class="voice-btn active" title="Automático">Automático</button>
+        <button id="voiceMale" class="voice-btn" title="Forzar voz masculina">Masculina</button>
+        <button id="voiceFemale" class="voice-btn" title="Forzar voz femenina">Femenina</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="small">Personalidad</div>
+        <div class="muted">La personalidad por defecto se mantiene (amistosa y profesional).</div>
+      </div>
+    </div>
+
+    <div class="footer-bar" aria-hidden="false">
+      <div>
+        <div class="small">Atajos</div>
+        <div class="muted">Enter = enviar · Shift+Enter = nueva línea</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small accent">Aden v3+</div>
+        <div class="muted">Local · Off-line</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="panel" role="main">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona o crea un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar mensajes">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea" aria-live="polite" aria-label="Mensajes">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "hola", "cuéntame un chiste", "quién te creó".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Enviar mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost" title="Deshacer">↶</button><button id="redoBtn" class="btn ghost" title="Rehacer">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FAQ Toggle Button -->
+<button id="faqToggle" title="Mostrar preguntas (FAQ)">FAQ</button>
+
+<!-- FAQ Drawer -->
+<div id="faqDrawer" aria-hidden="true">
+  <div class="header">
+    <div>
+      <div class="title">Preguntas que Aden entiende</div>
+      <div class="muted">Haz clic en "Pegar" o "Enviar" para usar una pregunta</div>
+    </div>
+    <div class="muted">Total: <span id="faqCount">0</span></div>
+  </div>
+
+  <input id="faqSearch" placeholder="Buscar en preguntas (ej: hora, chiste, python)"/>
+
+  <div id="faqList"></div>
+
+  <div class="footer">
+    <div class="muted">Tip: pulsa "Enviar" para enviar inmediatamente.</div>
+    <div><button id="faqClose" class="btn small">Cerrar</button></div>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+   Aden v3+ con FAQ - JavaScript
+   - Este fichero actualiza la versión anterior.
+   - Se ha añadido: panel FAQ desplegable, más preguntas y respuestas,
+     interacciones más humanas (variaciones), y enlace rápido desde el FAQ.
+   ========================================================================= */
+
+/* -----------------------
+   Estado & Configuración
+   ----------------------- */
+const STORAGE_KEY = 'aden_local';
+const DEFAULT_LIMIT = 12;
+let chats = [];
+let activeChatId = null;
+let responsesLimit = DEFAULT_LIMIT;
+let undoStack = [], redoStack = [];
+let ttsEnabled = false;
+let ttsMode = 'auto'; // 'auto' | 'male' | 'female'
+let voiceMap = {};
+let lastAssistantUtterance = '';
+
+/* Utilidades */
+function uid(prefix='id'){ return prefix+'-'+Math.random().toString(36).slice(2,12); }
+function saveChats(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+function loadChats(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try{ chats = JSON.parse(saved) || []; } catch(e){ console.warn('localStorage parse error', e); chats=[]; localStorage.removeItem(STORAGE_KEY); }
+  } else chats = [];
+  renderChatList();
+}
+function formatTime(ts){ const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* -----------------------
+   Render lista de chats / mensajes
+   ----------------------- */
+function renderChatList(){
+  const list = document.getElementById('chatsList'); list.innerHTML='';
+  chats.sort((a,b)=>(b.updated||0)-(a.updated||0));
+  chats.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    const initial = c.name ? c.name[0].toUpperCase() : 'C';
+    const mcount = (c.messages && c.messages.length) || 0;
+    div.innerHTML = `<div class="chat-thumb" aria-hidden="true">${escapeHtml(initial)}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${mcount} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`;
+    div.onclick = ()=>{ activeChatId = c.id; renderChatList(); renderMessages(); updatePanelTitle(); };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = chats.length;
+}
+
+function getActiveChat(){ return chats.find(x=>x.id===activeChatId); }
+
+function renderMessages(){
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  const chat = getActiveChat();
+  if(!chat){ area.innerHTML = '<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>'; updatePanelTitle(); return; }
+  if(!chat.messages || chat.messages.length===0){ area.innerHTML = '<div class="muted">Escribe algo para que Aden responda. Prueba: "hola", "cuéntame un chiste", "quién te creó".</div>'; updatePanelTitle(); return; }
+  chat.messages.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    const ts = m.timestamp ? formatTime(m.timestamp) : '';
+    const content = escapeHtml(m.text).replace(/\n/g,'<br>');
+    div.innerHTML = `<div class="text">${content}</div><div class="meta"><span class="small muted">${m.role==='user'?'Tú':'Aden'}</span><span class="muted small">${ts}</span></div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+/* -----------------------
+   Mensajes: añadir y guardar
+   ----------------------- */
+function addMessage(role, text){
+  const chat = getActiveChat();
+  if(!chat) return;
+  const msg = { role, text: String(text), timestamp: Date.now() };
+  chat.messages.push(msg);
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+  if(role === 'assistant'){
+    lastAssistantUtterance = text;
+    if(!chat.meta) chat.meta = {};
+    chat.meta.greeted = true;
+    if(ttsEnabled) speakWithMode(text, detectEmotionSimple(text));
+  }
+}
+
+/* -----------------------
+   Crear, borrar, renombrar, limpiar
+   ----------------------- */
+function createNewChat(initialName){
+  const id = uid('chat');
+  const name = initialName || ('Chat '+(chats.length+1));
+  const newChat = { id, name, messages: [], created: Date.now(), updated: Date.now(), meta: { greeted:false } };
+  chats.push(newChat);
+  activeChatId = id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  // Mensaje de bienvenida (suave)
+  addMessage('assistant','¡Hola! Soy Aden, tu asistente local. ¿En qué puedo ayudarte hoy?');
+}
+function deleteActiveChat(){
+  if(!activeChatId) return;
+  const idx = chats.findIndex(c=>c.id===activeChatId);
+  if(idx>=0){
+    if(!confirm('¿Seguro que quieres eliminar este chat?')) return;
+    chats.splice(idx,1);
+    activeChatId = chats.length ? chats[0].id : null;
+    saveChats(); renderChatList(); renderMessages(); updatePanelTitle();
+  }
+}
+function clearActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return;
+  if(!confirm('Vaciar mensajes del chat actual?')) return;
+  chat.messages = []; chat.updated = Date.now(); chat.meta = { greeted:false };
+  saveChats(); renderMessages(); renderChatList();
+}
+function renameActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return alert('Selecciona un chat primero.');
+  const newName = prompt('Nuevo nombre del chat:', chat.name);
+  if(newName && newName.trim()){ chat.name = newName.trim(); chat.updated = Date.now(); saveChats(); renderChatList(); updatePanelTitle(); }
+}
+
+/* -----------------------
+   Export / Import JSON
+   ----------------------- */
+function exportAllChats(){ const dataStr = JSON.stringify(chats,null,2); const blob = new Blob([dataStr],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='aden_chats_export.json'; a.click(); URL.revokeObjectURL(url); }
+function importChatsFromFile(file){ const reader = new FileReader(); reader.onload = (e)=>{ try{ const parsed = JSON.parse(e.target.result); if(Array.isArray(parsed)){ parsed.forEach(p=>{ if(!p.id) p.id = uid('chat'); if(!p.messages) p.messages = []; if(!p.meta) p.meta = { greeted:false }; }); chats = chats.concat(parsed); saveChats(); renderChatList(); alert('Importación completa.'); } else alert('Formato inválido: se esperaba un array de chats.'); } catch(err){ alert('Error al importar: '+err.message); } }; reader.readAsText(file); }
+
+/* -----------------------
+   Text-to-Speech (TTS)
+   ----------------------- */
+function getAvailableVoices(){ return window.speechSynthesis ? window.speechSynthesis.getVoices() : []; }
+function chooseVoice(preference='auto', intention='neutral'){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = getAvailableVoices();
+  if(!voices || voices.length===0) return null;
+  const esVoices = voices.filter(v=>/(^es|spanish|es-)/i.test(v.lang) || /spanish|español/i.test(v.name));
+  const pool = esVoices.length ? esVoices : voices;
+  // heurística simple
+  let chosen = null;
+  if(preference === 'male'){
+    chosen = pool.find(v=>/male|hombre|masculin/i.test(v.name)) || pool[0];
+  } else if(preference === 'female'){
+    chosen = pool.find(v=>/female|mujer|femenin|female/i.test(v.name)) || pool[0];
+  } else {
+    if(intention === 'empathic') chosen = pool.find(v=>/soft|natural|calm|ana|laura|maria|marta/i.test(v.name)) || pool[0];
+    else chosen = pool.find(v=>/standard|es-ES|es-419/i.test(v.name)) || pool[0];
+  }
+  return chosen;
+}
+function speakTextUtterance(text, voiceObj=null, rate=1, pitch=1, lang='es-ES'){
+  if(!('speechSynthesis' in window)) return;
+  try{ window.speechSynthesis.cancel(); const ut = new SpeechSynthesisUtterance(String(text)); if(voiceObj) ut.voice = voiceObj; ut.rate = rate; ut.pitch = pitch; ut.lang = lang; window.speechSynthesis.speak(ut); } catch(e){ console.warn('TTS error', e); }
+}
+function speakWithMode(text, intention='neutral'){
+  if(!ttsEnabled) return;
+  const pref = ttsMode || 'auto';
+  const voice = chooseVoice(pref, intention);
+  let rate = 1.0, pitch = 1.0;
+  if(intention === 'empathic'){ rate = 0.95; pitch = 1.05; }
+  else if(intention === 'alert'){ rate = 1.1; pitch = 1.0; }
+  speakTextUtterance(text, voice, rate, pitch, 'es-ES');
+}
+
+/* -----------------------
+   KEYWORD_ACTIONS: banco de triggers y handlers (ampliado)
+   ----------------------- */
+const KEYWORD_ACTIONS = [
+  { keywords:['idiota','imbecil','tonto','estupido','estúpido','gilipollas','cabron','cabrón','mierda','puta','puto','hijo de puta','zorra','bobo','subnormal','payaso'], priority:999, handler: ()=> 'No seguiré esta conversación si sigues así.' },
+  { keywords:['quien te hizo','quien te creo','quien te creó','quién te creó','quien te a hecho','quien te a creado','quien te ha creado','creador','programaste','programó','fuiste creado por'], priority:980, handler: ()=> 'Aden ha sido creado por amor al arte por Hodei Arranz Romero.' },
+  { keywords:['hora','horas','reloj','qué hora','que hora','hora es'], priority:900, handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
+  { keywords:['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'], priority:860, handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+  { keywords:['x','*','por','multiplica','multiplicación'], priority:850, handler: (txt)=>{ const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/); if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i); if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"'; } },
+  { keywords:['chiste','cuentame un chiste','cuéntame un chiste','dime un chiste','hazme reir'], priority:820, handler: ()=> { const jokes = ['😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!','🤣 ¿Por qué los pájaros no usan Facebook? ¡Porque ya tienen Twitter!','😄 ¿Cuál es el colmo de un electricista? Que le dé miedo la oscuridad.','😆 ¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas.']; return jokes[Math.floor(Math.random()*jokes.length)]; } },
+  { keywords:['traduce','traducir','traducción'], priority:800, handler: (txt)=>{ const after = txt.split(/traduce[:\s]|traducir[:\s]/i)[1]; if(after && after.trim()) return `🌐 Traducción (simulada): "${after.trim()}" => (ejemplo offline).`; return '🌐 Dime el texto que quieres traducir después de "traduce" o "traducir".'; } },
+  { keywords:['triste','deprim','alegre','feliz','ansiedad','ansioso','ansiosa','enfadado','enojado','solo','sola','solo.'], priority:790, handler: (txt)=>{ if(/triste|deprim/i.test(txt)) return chooseVariation(['Siento que te sientas así. Si quieres, puedo escucharte y darte algunas ideas para animarte.','Lo siento — te acompaño. ¿Quieres que hablemos un rato?','Lamento que te sientas así. ¿Te apetece un consejo sencillo para mejorar el ánimo?']); if(/ansiedad|ansioso|ansiosa|estres|estrés/i.test(txt)) return chooseVariation(['Respirar profundamente 4-4-4 puede ayudar. ¿Quieres que te guíe?','Intentar respirar despacio 5 minutos ayuda a calmar la ansiedad. ¿Lo intentamos?']); if(/enfadad|enojad|cabre/i.test(txt)) return chooseVariation(['Respirar y dar un paso atrás suele funcionar. ¿Quieres distraerte con algo?','Lo entiendo. ¿Quieres contarme por qué te enfada?']); return 'Si quieres, cuéntame más.'; } },
+  { keywords:['inteligencia artificial','ia','agujero negro','everest','tokio','capital de japón','capital japon','rusia'], priority:650, handler: (txt)=>{ if(/inteligencia artificial|ia/.test(txt)) return '🤖 La inteligencia artificial es la simulación de procesos inteligentes por máquinas. Puedo darte ejemplos o explicarlo con analogías.'; if(/agujero negro/.test(txt)) return '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que ni la luz puede escapar.'; if(/everest|montaña más alta/.test(txt)) return '🗻 El monte Everest es la montaña más alta (≈8848 m).'; if(/capital.*jap|tokio/.test(txt)) return '🏯 La capital de Japón es Tokio.'; if(/rusia|país más grande/.test(txt)) return '🌏 Rusia es el país más grande por superficie.'; return null; } },
+  { keywords:['minecraft','juego','videojuego','steam','serie parecida','breaking bad','one piece','pelicula','películas'], priority:600, handler: (txt)=>{ if(/minecraft/.test(txt)) return '⛏️ Si te gusta Minecraft, quizá disfrutes también de Terraria o Stardew Valley.'; if(/breaking bad|serie parecida/.test(txt)) return '📺 Te recomiendo "Better Call Saul" si te gustó Breaking Bad.'; if(/one piece/.test(txt)) return '🖥️ Puedes ver One Piece en plataformas como Crunchyroll o Netflix según tu región.'; if(/steam/.test(txt)) return '🎮 Para ofertas en Steam, revisa su sección de rebajas.'; return null; } },
+  { keywords:['receta','comer','cocina','cena','almuerzo','desayuno','comida'], priority:560, handler: (txt)=>{ if(/receta.*pasta|pasta/.test(txt)) return '🍝 Una receta rápida: pasta con tomate, ajo, aceite, albahaca y queso. ¿Quieres la receta paso a paso?'; if(/receta.*tortilla|tortilla/.test(txt)) return '🥚 Tortilla: bate huevos, saltea patata/pimiento, mezcla y cocina a fuego medio.'; return '¿Qué te apetece cocinar? Dime un ingrediente y te doy ideas.'; } },
+  { keywords:['programacion','python','javascript','html','css','git','npm','linux','bash','regex'], priority:540, handler: (txt)=>{ if(/python/.test(txt)) return '🐍 Python es genial para scripting y ciencia de datos. ¿Quieres un ejemplo rápido?'; if(/javascript/.test(txt)) return '📜 JavaScript es el lenguaje de la web. ¿Necesitas un snippet para DOM, fetch o async/await?'; if(/git/.test(txt)) return '🔧 Git: usa "git status", "git add .", "git commit -m \'msg\'" y "git push". ¿Quieres ayuda con un conflicto?'; if(/linux|bash/.test(txt)) return '🐧 Para sistemas Linux puedes usar "top", "htop", "ls -la" y "journalctl -xe". ¿Qué distro usas?'; return null; } },
+  { keywords:['salud','dolor','fiebre','resfriado','medicina'], priority:520, handler: (txt)=>{ return 'No soy médico, pero si tienes síntomas persistentes te recomiendo consultar con un profesional. Puedo ofrecer consejos generales (descanso, hidratación, controlar temperatura).'; } },
+  { keywords:['productividad','todo','tareas','organizar','planificar','agenda'], priority:500, handler: (txt)=>{ return chooseVariation(['Organiza en bloques pequeños (25–50 min), descansa 5–10 min entre ellos. ¿Quieres que te sugiera un plan de hoy?','Probar la técnica Pomodoro ayuda a concentrarte: 25 minutos trabajo / 5 descanso.']); } },
+  { keywords:['motivación','frase motivadora','ánimo','ánimo por favor','inspiración','cita inspiradora'], priority:450, handler: (txt)=>{ const quotes = ['💬 “Hazlo con miedo, pero hazlo.”','💪 “Pequeños pasos cada día llevan lejos.”','🌱 “No es quién eres, es quién decides ser.”']; return quotes[Math.floor(Math.random()*quotes.length)]; } },
+  { keywords:['_default_'], priority:1, handler: ()=> '😅 No estoy seguro de eso. Intenta con otra palabra clave o pregunta de forma distinta.' }
+];
+
+/* -----------------------
+   Normalización / matching
+   ----------------------- */
+function normalizeText(s){ return (s||'').toString().toLowerCase(); }
+function tokenize(s){ return (s||'').toString().toLowerCase().split(/[^a-z0-9áéíóúñü]+/).filter(Boolean); }
+
+function chooseVariation(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* findResponseByKeyword: detecta keywords y retorna respuesta */
+function findResponseByKeyword(userText){
+  const txt = normalizeText(userText);
+  const tokens = tokenize(txt);
+  const matched = [];
+  for(const action of KEYWORD_ACTIONS){
+    for(const kw of action.keywords){
+      if(kw === '_default_') continue;
+      const lkw = kw.toString().toLowerCase();
+      if(txt.includes(lkw) || tokens.includes(lkw)){ matched.push(action); break; }
+    }
+  }
+  if(matched.length > 0){
+    matched.sort((a,b)=>b.priority - a.priority);
+    const chosen = matched[0];
+    try{ if(typeof chosen.handler === 'function') return chosen.handler(userText); return String(chosen.handler); } catch(err){ console.warn('Error handler', err); return 'Lo siento, algo falló al procesar la respuesta.'; }
+  }
+  const fallback = KEYWORD_ACTIONS.find(a=>a.keywords.includes('_default_'));
+  return fallback ? fallback.handler() : 'No lo sé.';
+}
+
+/* -----------------------
+   Emoción simple
+   ----------------------- */
+function detectEmotionSimple(text){
+  const t = normalizeText(text);
+  if(/triste|deprim|melancol|llor|nostálg|solo|sola|ansiedad|ansioso|ansiosa|angustia/.test(t)) return 'empathic';
+  if(/enfadad|enojad|cabre|rabia|furia/.test(t)) return 'alert';
+  return 'neutral';
+}
+
+/* -----------------------
+   generateResponse: controla presentación y variaciones humanas
+   ----------------------- */
+function generateResponse(userText){
+  if(!userText) return '';
+  const chat = getActiveChat();
+  // si chat existe y no ha saludado, no forzar presentación si user pregunta algo concreto
+  let resp = findResponseByKeyword(userText);
+  // Evitar repeticiones exactas de la presentación si ya saludó
+  if(chat && chat.meta && chat.meta.greeted && typeof resp === 'string' && /hola|soy aden|asistente local/i.test(resp)){
+    const alternatives = ['¿Puedes explicar un poco más?', 'Interesante — cuéntame más.', 'No estoy seguro de eso, ¿me lo reformulas?'];
+    return alternatives[Math.floor(Math.random()*alternatives.length)];
+  }
+  if(chat){ if(!chat.meta) chat.meta = {}; chat.meta.greeted = true; }
+  return resp || '😅 No estoy seguro de eso; prueba con otra pregunta.';
+}
+
+/* Simulación de typing */
+let typingTimer = null;
+function simulateAdenTypingAndRespond(userText){
+  const messagesArea = document.getElementById('messagesArea');
+  const indicator = document.createElement('div');
+  indicator.className = 'bubble assistant fade-in';
+  indicator.innerHTML = `<div class="text"><span class="typing"><span></span><span></span><span></span></span> Aden está escribiendo...</div>`;
+  messagesArea.appendChild(indicator);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+  const wait = 250 + Math.random()*900;
+  if(typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{
+    indicator.remove();
+    const answer = generateResponse(userText);
+    addMessage('assistant', answer);
+  }, wait);
+}
+
+/* -----------------------
+   Input handlers
+   ----------------------- */
+function handleUserInput(){
+  const inputEl = document.getElementById('inputTxt');
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+  addMessage('user', txt);
+  undoStack.push(txt); redoStack = [];
+  inputEl.value = '';
+  updateCharCount();
+  simulateAdenTypingAndRespond(txt);
+}
+
+/* keyboard */
+document.getElementById('inputTxt').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleUserInput(); }
+});
+
+/* undo/redo */
+document.getElementById('undoBtn').onclick = ()=>{ if(undoStack.length===0) return; const last = undoStack.pop(); redoStack.push(last); document.getElementById('inputTxt').value = undoStack.length ? undoStack[undoStack.length-1] : ''; updateCharCount(); };
+document.getElementById('redoBtn').onclick = ()=>{ if(redoStack.length===0) return; const next = redoStack.pop(); undoStack.push(next); document.getElementById('inputTxt').value = next; updateCharCount(); };
+
+/* botones principales */
+document.getElementById('newChatBtn').onclick = ()=> createNewChat();
+document.getElementById('sendBtn').onclick = ()=> handleUserInput();
+document.getElementById('decLimit').onclick = ()=>{ responsesLimit = Math.max(1, responsesLimit-1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('incLimit').onclick = ()=>{ responsesLimit = Math.min(100, responsesLimit+1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('resetLocal').onclick = ()=>{ if(confirm('Resetear Aden: eliminar todos los chats y ajustes?')){ localStorage.removeItem(STORAGE_KEY); chats=[]; activeChatId=null; responsesLimit = DEFAULT_LIMIT; document.getElementById('limitDisplay').textContent = responsesLimit; loadChats(); renderMessages(); } };
+document.getElementById('renameChatBtn').onclick = renameActiveChat;
+document.getElementById('clearChatBtn').onclick = clearActiveChat;
+document.getElementById('deleteChatBtn').onclick = deleteActiveChat;
+document.getElementById('exportAllBtn').onclick = exportAllChats;
+document.getElementById('importBtn').onclick = ()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=(e)=>{ const f=e.target.files[0]; if(f) importChatsFromFile(f); }; inp.click(); };
+
+/* search chats */
+document.getElementById('searchChats').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  const list = document.getElementById('chatsList'); list.innerHTML = '';
+  const filtered = chats.filter(c=>{ if(!q) return true; const nm = c.name.toLowerCase(); const anyMsg = (c.messages||[]).some(m=> (m.text||'').toLowerCase().includes(q)); return nm.includes(q) || anyMsg; });
+  filtered.forEach(c=>{ const div=document.createElement('div'); div.className='chat-item fade-in'; if(c.id===activeChatId) div.classList.add('active'); div.innerHTML=`<div class="chat-thumb">${escapeHtml(c.name[0]||'C')}</div><div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${(c.messages||[]).length} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`; div.onclick=()=>{ activeChatId=c.id; renderChatList(); renderMessages(); updatePanelTitle(); }; list.appendChild(div); });
+  document.getElementById('chatCount').textContent = filtered.length;
+});
+
+/* suggestions */
+const SUGGESTIONS = ['hola','quién te creó','cuéntame un chiste','hora','fecha','traduce: hola mundo','25 x 47','me siento triste','qué es la inteligencia artificial','receta pasta','ayuda con python','cómo usar git'];
+function renderSuggestions(){ const container=document.getElementById('suggestions'); container.innerHTML=''; SUGGESTIONS.forEach(s=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=s; c.onclick=()=>{ document.getElementById('inputTxt').value=s; updateCharCount(); document.getElementById('inputTxt').focus(); }; container.appendChild(c); }); }
+
+/* char counter */
+function updateCharCount(){ const v = document.getElementById('inputTxt').value || ''; document.getElementById('charCount').textContent = `${v.length} caracteres`; }
+document.getElementById('inputTxt').addEventListener('input', updateCharCount);
+
+/* voice toggles */
+document.getElementById('voiceMasterToggle').addEventListener('change', e=>{ ttsEnabled = e.target.checked; const k = document.querySelector('.kbd'); if(k) k.textContent = ttsEnabled ? 'Activado' : 'Desactivar'; if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel(); });
+document.getElementById('voiceAuto').addEventListener('click', ()=>{ ttsMode='auto'; setVoiceButtonsState(); });
+document.getElementById('voiceMale').addEventListener('click', ()=>{ ttsMode='male'; setVoiceButtonsState(); });
+document.getElementById('voiceFemale').addEventListener('click', ()=>{ ttsMode='female'; setVoiceButtonsState(); });
+function setVoiceButtonsState(){ document.getElementById('voiceAuto').classList.toggle('active', ttsMode==='auto'); document.getElementById('voiceMale').classList.toggle('active', ttsMode==='male'); document.getElementById('voiceFemale').classList.toggle('active', ttsMode==='female'); }
+window.speechSynthesis?.addEventListener?.('voiceschanged', ()=>{ getAvailableVoices(); });
+
+/* panel title */
+function updatePanelTitle(){ const chat = getActiveChat(); const title = document.getElementById('panelTitle'); if(!chat) title.textContent = 'Bienvenido — selecciona o crea un chat'; else title.textContent = `${chat.name} · ${chat.messages.length} mensajes`; document.getElementById('responsesLeft').textContent = `Límite por chat: ${responsesLimit}`; }
+
+/* -----------------------
+   FAQ Drawer: datos y render
+   ----------------------- */
+
+/* FAQ_ITEMS: preguntas y respuestas legibles (esto es lo que se muestra en el panel) */
+const FAQ_ITEMS = [
+  { q:'¿Qué hora es?', a: 'Aden responde con la hora actual de tu PC si detecta la palabra "hora".' },
+  { q:'¿Qué fecha es hoy?', a: 'Aden dará la fecha local si detecta "fecha" o "día".' },
+  { q:'Cuéntame un chiste', a: 'Aden tiene varios chistes guardados y variará entre ellos.' },
+  { q:'¿Quién te creó?', a: 'Aden responderá: "Aden ha sido creado por amor al arte por Hodei Arranz Romero."' },
+  { q:'Traduce: hola mundo', a: 'Aden ofrece una traducción simulada offline al detectar "traduce".' },
+  { q:'25 x 47', a: 'Aden detecta multiplicaciones escritas con "x" o "*" y las resuelve.' },
+  { q:'Me siento triste', a: 'Aden detecta emociones (tristeza, ansiedad) y responde con empatía y opciones.' },
+  { q:'Recuérdame cómo usar git', a: 'Aden ofrece comandos básicos de git al detectar "git".' },
+  { q:'Recomiéndame un videojuego', a: 'Aden sugiere juegos según el input (ej. Minecraft -> Terraria, Stardew).' },
+  { q:'Dame una receta rápida', a: 'Aden puede proponer recetas sencillas según ingredientes que indiques.' },
+  { q:'¿Qué es la inteligencia artificial?', a: 'Aden explica IA en términos simples y puede dar ejemplos.' },
+  { q:'¿Cuál es la capital de Japón?', a: 'Aden responde "Tokio".' },
+  { q:'¿Cuál es el país más grande?', a: 'Aden responde "Rusia".' },
+  { q:'¿Qué es un agujero negro?', a: 'Aden da una explicación breve y clara.' },
+  { q:'¿Cómo me organizo hoy?', a: 'Aden ofrece consejos de productividad, Pomodoro y planificación.' },
+  { q:'Dime una frase motivadora', a: 'Aden ofrece frases motivadoras al detectar "motivación" o "ánimo".' },
+  { q:'¿Cómo traduzco un texto?', a: 'Escribe "traduce: [texto]" y Aden te dará una traducción simulada.' },
+  { q:'¿Qué opinas de Hodei?', a: 'Puedes añadir una respuesta personalizada para esa pregunta.' },
+  { q:'¿Puedes decir una curiosidad?', a: 'Aden tiene datos curiosos sobre ciencia, historia y más.' },
+  { q:'Consejos para el insomnio', a: 'Aden dará consejos generales y sugerencias no médicas.' },
+  { q:'¿Qué canciones conoces?', a: 'Aden tiene referencias musicales (ej. Despacito, géneros, etc.).' },
+  { q:'¿Cómo hago backup?', a: 'Aden puede explicar cómo hacer copias de seguridad en OneDrive y localmente.' },
+  { q:'¿Tienes ejemplos de regex?', a: 'Aden puede dar ejemplos básicos de expresiones regulares.' },
+  { q:'¿Cómo instalar una SSD?', a: 'Aden puede explicar pasos básicos e indicaciones de seguridad.' },
+  { q:'¿Qué significa resiliencia?', a: 'Aden define conceptos como resiliencia en lenguaje simple.' },
+  { q:'Ponme una lista de atajos', a: 'Aden puede enumerar atajos comunes según el sistema.' },
+  { q:'¿Me puedes dar un currículum?', a: 'Aden ofrece estructura y ejemplos para redactar tu CV.' },
+  { q:'¿Qué día es mañana?', a: 'Aden calcula la fecha de mañana si detecta la palabra "mañana".' },
+  { q:'¿Cuánto tarda la luz del sol?', a: 'Aden responde: ~8 minutos y 20 segundos.' }
+  /* Puedes expandir aquí directamente añadiendo más objetos {q,a} */
+];
+
+/* Render del drawer */
+function renderFAQDrawer(filter=''){
+  const list = document.getElementById('faqList');
+  list.innerHTML = '';
+  const q = (filter||'').trim().toLowerCase();
+  const filtered = FAQ_ITEMS.filter(item => {
+    if(!q) return true;
+    return item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q);
+  });
+  if(filtered.length === 0){ list.innerHTML = '<div class="faq-empty">No encuentro preguntas que coincidan.</div>'; document.getElementById('faqCount').textContent = 0; return; }
+  filtered.forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'faq-item';
+    div.innerHTML = `<div class="q">${escapeHtml(item.q)}</div><div class="a">${escapeHtml(item.a)}</div>`;
+    const controls = document.createElement('div'); controls.className = 'controls';
+    const btnPaste = document.createElement('button'); btnPaste.textContent = 'Pegar'; btnPaste.title='Pegar la pregunta en el cuadro de texto';
+    btnPaste.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); document.getElementById('inputTxt').focus(); };
+    const btnSend = document.createElement('button'); btnSend.textContent = 'Enviar'; btnSend.title='Enviar la pregunta ahora';
+    btnSend.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); handleUserInput(); toggleFAQ(false); };
+    controls.appendChild(btnPaste); controls.appendChild(btnSend);
+    div.appendChild(controls);
+    list.appendChild(div);
+  });
+  document.getElementById('faqCount').textContent = filtered.length;
+}
+
+/* FAQ toggle logic */
+const faqToggleBtn = document.getElementById('faqToggle');
+const faqDrawer = document.getElementById('faqDrawer');
+const faqClose = document.getElementById('faqClose');
+faqToggleBtn.addEventListener('click', ()=> toggleFAQ());
+faqClose.addEventListener('click', ()=> toggleFAQ(false));
+document.getElementById('faqSearch').addEventListener('input', (e)=> renderFAQDrawer(e.target.value));
+
+function toggleFAQ(force){
+  const open = faqDrawer.classList.contains('open');
+  const shouldOpen = (typeof force === 'boolean') ? force : !open;
+  faqDrawer.classList.toggle('open', shouldOpen);
+  faqDrawer.setAttribute('aria-hidden', !shouldOpen);
+}
+
+/* -----------------------
+   Inicialización y carga
+   ----------------------- */
+function init(){
+  loadChats();
+  renderSuggestions();
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+  setVoiceButtonsState();
+  if(chats.length === 0) createNewChat('Bienvenida');
+  if(!activeChatId && chats.length) activeChatId = chats[0].id;
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  document.getElementById('inputTxt').focus();
+  renderFAQDrawer();
+}
+
+/* Llamada inicial */
+init();
+
+/* ============================
+   Fin del script (FAQ añadido)
+   ============================ */
+
+</script>
+</body>
+</html>
+

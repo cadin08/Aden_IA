@@ -1,0 +1,956 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso (v3+)</title>
+<style>
+/* =========================================================================
+   Aden v3+
+   Estilos: diseño oscuro, limpio y responsivo.
+   Mantengo la estética previa y añado nuevos componentes (panel ajustes,
+   selector de voz, indicadores, etc.)
+   ========================================================================= */
+
+:root{
+  --bg-0:#07121a;
+  --bg-1:#0e1a27;
+  --panel:#11202b;
+  --glass: rgba(255,255,255,0.03);
+  --muted:#9fb0c6;
+  --accent-1:#57e4b8;
+  --accent-2:#6fb7ff;
+  --danger:#ff6b6b;
+  --card:#0b1720;
+  --radius:14px;
+  --shadow: 0 14px 36px rgba(2,8,23,0.6);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color-scheme: dark;
+}
+
+/* Reset / base */
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:760px}
+
+/* Sidebar */
+.sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#022b2a;font-size:18px;box-shadow:0 6px 18px rgba(87,228,184,0.06)}
+.brand h1{margin:0;font-size:16px}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+.controls{display:flex;gap:8px;margin-top:12px}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+.btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03)}
+.btn.small{padding:6px 8px;font-size:12px}
+
+/* Search / chats list */
+.search{display:flex;gap:8px;margin-top:12px;align-items:center}
+.search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+.meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+.chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+.chat-item:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,0.35)}
+.chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+.chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+.chat-meta h4{margin:0;font-size:13px}
+.chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+
+/* Panel principal */
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.panel-header{display:flex;align-items:center;justify-content:space-between}
+.panel-header .left{display:flex;gap:12px;align-items:center}
+.panel-header h2{margin:0;font-size:18px}
+.panel-actions{display:flex;gap:8px}
+.messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+.bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+.bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+.bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+.compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+.compose .right{display:flex;flex-direction:column;gap:8px}
+.tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+.chip:hover{transform:translateY(-3px)}
+.typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+.typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.12s}
+.typing span:nth-child(3){animation-delay:.24s}
+@keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+.muted{color:var(--muted)}
+.danger{color:var(--danger)}
+.fade-in{animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Settings and voice controls */
+.settings-panel{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.02)}
+.toggle{display:flex;align-items:center;gap:10px}
+.kbd{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:6px;font-size:12px}
+.footer-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-top:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+.small{font-size:12px;color:var(--muted)}
+.accent{color:var(--accent-1)}
+.search-highlight{background:linear-gradient(90deg, rgba(111,183,255,0.12), rgba(87,228,184,0.06));padding:4px 8px;border-radius:8px}
+
+/* Voice selector UI */
+.voice-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.voice-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.voice-btn.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#052a26}
+
+/* Accessibility focus */
+[tabindex="0"]:focus{outline:2px solid rgba(111,183,255,0.08)}
+/* small helpers */
+.hr{border-top:1px dashed rgba(255,255,255,0.02);margin:10px 0}
+.center{display:flex;align-items:center;justify-content:center}
+
+/* Responsive tweaks for wide displays */
+@media (min-width:1400px){
+  .wrap{max-width:1400px}
+}
+
+/* End styles */
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">ADN</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Crear nuevo chat">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chats JSON">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search" aria-label="Buscar chats">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." aria-label="Buscar chats"/>
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite" aria-label="Lista de chats"></div>
+
+    <div class="settings-panel" aria-label="Ajustes rápidos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Límite respuestas/chat</div>
+          <div class="muted" id="limitDisplay">12</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="decLimit" class="btn">-</button>
+          <button id="incLimit" class="btn">+</button>
+          <button id="resetLocal" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div>
+          <div class="small">Voz &mdash; Lector</div>
+          <div class="muted">Sintetizador de voz local (SpeechSynthesis)</div>
+        </div>
+        <div>
+          <label class="toggle">
+            <input id="voiceMasterToggle" type="checkbox" aria-label="Activar/Desactivar voz"/>
+            <span class="kbd">Activar</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="voice-row" aria-label="Selector de voz">
+        <button id="voiceAuto" class="voice-btn active" title="Automático">Automático</button>
+        <button id="voiceMale" class="voice-btn" title="Forzar voz masculina">Masculina</button>
+        <button id="voiceFemale" class="voice-btn" title="Forzar voz femenina">Femenina</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="small">Personalidad</div>
+        <div class="muted">La personalidad por defecto se mantiene (amistosa y profesional).</div>
+      </div>
+    </div>
+
+    <div class="footer-bar" aria-hidden="false">
+      <div>
+        <div class="small">Atajos</div>
+        <div class="muted">Enter = enviar · Shift+Enter = nueva línea</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small accent">Aden v3+</div>
+        <div class="muted">Local · Off-line</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="panel" role="main">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona o crea un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar mensajes">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea" aria-live="polite" aria-label="Mensajes">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "hola", "cuéntame un chiste", "quién te creó".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Enviar mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost" title="Deshacer">↶</button><button id="redoBtn" class="btn ghost" title="Rehacer">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* =========================================================================
+   Aden v3+ - JavaScript
+   - Archivo íntegro y offline.
+   - Integración: detección por palabra clave, TTS, prioridad, emociones,
+     memoria por chat (temporal y persistente), y mejoras UX.
+   ========================================================================= */
+
+/* -----------------------
+   Constantes y Estado
+   ----------------------- */
+const STORAGE_KEY = 'aden_local';     // compatibilidad con tu almacenamiento
+const DEFAULT_LIMIT = 12;
+let chats = [];
+let activeChatId = null;
+let responsesLimit = DEFAULT_LIMIT;
+let undoStack = [];
+let redoStack = [];
+let ttsEnabled = false;      // Master toggle for TTS
+let ttsMode = 'auto';        // 'auto' | 'male' | 'female'
+let lastAssistantUtterance = '';
+let voiceMap = { auto: null, male: null, female: null }; // caches
+
+/* Util: genera IDs únicos */
+function uid(prefix='id'){ return prefix+'-'+Math.random().toString(36).slice(2,12); }
+
+/* Save & load chats */
+function saveChats(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+function loadChats(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try {
+      chats = JSON.parse(saved) || [];
+    } catch(e){
+      console.warn('Error parseando localStorage — reseteando', e);
+      chats = [];
+      localStorage.removeItem(STORAGE_KEY);
+    }
+  } else chats = [];
+  renderChatList();
+}
+
+/* -----------------------
+   Helpers de UI y formato
+   ----------------------- */
+function formatTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* -----------------------
+   Render: lista de chats
+   ----------------------- */
+function renderChatList(){
+  const list = document.getElementById('chatsList'); list.innerHTML='';
+  // ordenar por updated (desc)
+  chats.sort((a,b)=>(b.updated||0)-(a.updated||0));
+  chats.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    const initial = c.name ? c.name[0].toUpperCase() : 'C';
+    const messagesCount = (c.messages && c.messages.length) || 0;
+    div.innerHTML = `
+      <div class="chat-thumb" aria-hidden="true">${escapeHtml(initial)}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${messagesCount} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>
+    `;
+    div.onclick = () => {
+      activeChatId = c.id;
+      renderChatList();
+      renderMessages();
+      updatePanelTitle();
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = chats.length;
+}
+
+/* -----------------------
+   Render: mensajes del chat
+   ----------------------- */
+function getActiveChat(){ return chats.find(x=>x.id===activeChatId); }
+
+function renderMessages(){
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  const chat = getActiveChat();
+  if(!chat){
+    area.innerHTML = '<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>';
+    updatePanelTitle();
+    return;
+  }
+
+  if(!chat.messages || chat.messages.length===0){
+    area.innerHTML = '<div class="muted">Escribe algo para que Aden responda. Prueba: "hola", "cuéntame un chiste", "quién te creó".</div>';
+    updatePanelTitle();
+    return;
+  }
+
+  chat.messages.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    const ts = m.timestamp ? formatTime(m.timestamp) : '';
+    const content = escapeHtml(m.text).replace(/\n/g,'<br>');
+    div.innerHTML = `<div class="text">${content}</div><div class="meta"><span class="small muted">${m.role==='user'?'Tú':'Aden'}</span><span class="muted small">${ts}</span></div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+/* -----------------------
+   Mensajes: añadir / guardar
+   ----------------------- */
+function addMessage(role, text, opts = {}){
+  const chat = getActiveChat();
+  if(!chat) return;
+  const msg = { role, text: String(text), timestamp: Date.now() };
+  chat.messages.push(msg);
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+  if(role === 'assistant'){
+    lastAssistantUtterance = text;
+    // marcar que ya saludó si correspondía
+    if(typeof chat.meta !== 'object') chat.meta = {};
+    chat.meta.greeted = chat.meta.greeted || true;
+    // Hablar por voz si está activado
+    if(ttsEnabled) speakWithMode(text, detectEmotionSimple(text));
+  }
+}
+
+/* -----------------------
+   Gestion de chats: crear, borrar, renombrar, limpiar
+   ----------------------- */
+function createNewChat(initialName){
+  const id = uid('chat');
+  const name = initialName || ('Chat '+(chats.length+1));
+  const newChat = { id, name, messages: [], created: Date.now(), updated: Date.now(), meta: { greeted: false } };
+  chats.push(newChat);
+  activeChatId = id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  // bienvenida automática si corresponde
+  addMessage('assistant', '¡Hola! Soy Aden, tu asistente local. ¿En qué puedo ayudarte hoy?');
+}
+
+function deleteActiveChat(){
+  if(!activeChatId) return;
+  const idx = chats.findIndex(c=>c.id===activeChatId);
+  if(idx>=0){
+    if(!confirm('¿Seguro que quieres eliminar este chat?')) return;
+    chats.splice(idx,1);
+    activeChatId = chats.length ? chats[0].id : null;
+    saveChats();
+    renderChatList();
+    renderMessages();
+    updatePanelTitle();
+  }
+}
+
+function clearActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return;
+  if(!confirm('Vaciar mensajes del chat actual?')) return;
+  chat.messages = [];
+  chat.updated = Date.now();
+  chat.meta = { greeted: false };
+  saveChats();
+  renderMessages();
+  renderChatList();
+}
+
+function renameActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return alert('Selecciona un chat primero.');
+  const newName = prompt('Nuevo nombre del chat:', chat.name);
+  if(newName && newName.trim()){
+    chat.name = newName.trim();
+    chat.updated = Date.now();
+    saveChats();
+    renderChatList();
+    updatePanelTitle();
+  }
+}
+
+/* -----------------------
+   Export / Import JSON
+   ----------------------- */
+function exportAllChats(){
+  const dataStr = JSON.stringify(chats, null, 2);
+  const blob = new Blob([dataStr], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'aden_chats_export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importChatsFromFile(file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if(Array.isArray(parsed)){
+        parsed.forEach(p=>{
+          if(!p.id) p.id = uid('chat');
+          if(!p.messages) p.messages = [];
+          if(!p.meta) p.meta = { greeted: false };
+        });
+        chats = chats.concat(parsed);
+        saveChats();
+        renderChatList();
+        alert('Importación completa.');
+      } else alert('Formato inválido: se esperaba un array de chats.');
+    } catch(err){
+      alert('Error al importar: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* -----------------------
+   Text-to-Speech (TTS)
+   - Soporta: auto / male / female
+   - Modo "auto" intenta seleccionar voz empática o neutra según intención
+   ----------------------- */
+function getAvailableVoices(){
+  return window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+}
+
+/* Decide una voz adecuada dada la preferencia ('auto'|'male'|'female') y la intención ('empathic'|'neutral') */
+function chooseVoice(preference='auto', intention='neutral'){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = getAvailableVoices();
+  if(!voices || voices.length===0) return null;
+
+  // cache simple: si ya elegimos uno para esta combo, retornarlo
+  const cacheKey = `${preference}|${intention}`;
+  if(voiceMap[cacheKey]) return voiceMap[cacheKey];
+
+  // criterios:
+  // - preferir lang startsWith 'es' or name contains 'Spanish' o 'Español'
+  // - preferir male/female by voice.name or voice.gender (gender not standard)
+  // heurístico simple:
+  const esVoices = voices.filter(v=>/(^es|spanish|es-)/i.test(v.lang) || /spanish|español/i.test(v.name));
+  const pool = esVoices.length ? esVoices : voices;
+
+  let chosen = null;
+
+  if(preference === 'male'){
+    chosen = pool.find(v=>/male|hombre|masculin/i.test(v.name)) || pool.find(v=>/m/i.test(v.name)) || pool[0];
+  } else if(preference === 'female'){
+    chosen = pool.find(v=>/female|mujer|femenin|female/i.test(v.name)) || pool.find(v=>/f/i.test(v.name)) || pool[0];
+  } else { // auto
+    // si intención empática -> preferimos voz más "suave" (heurística por nombre "Soft", "Natural", etc.)
+    if(intention === 'empathic'){
+      chosen = pool.find(v=>/soft|natural|calm|paquita|alma|ana|laura|maria|marta/i.test(v.name)) || pool[0];
+    } else {
+      chosen = pool.find(v=>/standard|male|female|es-ES|es-419/i.test(v.name)) || pool[0];
+    }
+  }
+  // guardar en cacheMap (index by preference for reuse)
+  voiceMap[cacheKey] = chosen;
+  return chosen;
+}
+
+/* speakText baja-level */
+function speakTextUtterance(text, voiceObj=null, rate=1, pitch=1, lang='es-ES'){
+  if(!('speechSynthesis' in window)) return;
+  try{
+    window.speechSynthesis.cancel();
+    const ut = new SpeechSynthesisUtterance(String(text));
+    if(voiceObj) ut.voice = voiceObj;
+    ut.rate = rate;
+    ut.pitch = pitch;
+    ut.lang = lang;
+    window.speechSynthesis.speak(ut);
+  } catch(e){
+    console.warn('TTS error', e);
+  }
+}
+
+/* speak with mode (select voice based on ttsMode and intention) */
+function speakWithMode(text, intention='neutral'){
+  if(!ttsEnabled) return;
+  // obtain voice depending on ttsMode
+  const pref = ttsMode || 'auto';
+  const voice = chooseVoice(pref, intention);
+  // set rate/pitch by intention
+  let rate = 1.0, pitch = 1.0;
+  if(intention === 'empathic'){ rate = 0.95; pitch = 1.05; }
+  else if(intention === 'neutral'){ rate = 1.0; pitch = 1.0; }
+  else if(intention === 'alert'){ rate = 1.1; pitch = 1.0; }
+
+  speakTextUtterance(text, voice, rate, pitch, 'es-ES');
+}
+
+/* -----------------------
+   Keyword-based actions (core)
+   - KEYWORD_ACTIONS: cada entrada tiene keywords, priority y handler
+   - Se detecta si aparece cualquiera de las keywords (substring o token)
+   - Si hay múltiples matches, se elige la de mayor prioridad
+   - handler puede ser string o función(text) -> string
+   ----------------------- */
+
+/* Lista extensa de keywords y handlers.
+   Puedes añadir más objetos a este array para ampliar capacidades.
+*/
+const KEYWORD_ACTIONS = [
+  // Insultos: prioridad máxima
+  { keywords: ['idiota','imbecil','tonto','estupido','estúpido','gilipollas','cabron','cabrón','mierda','puta','puto','hijo de puta','zorra','bobo','subnormal','payaso','idiota','tontito','tonta','tarado'],
+    priority: 999,
+    handler: ()=> 'No seguiré esta conversación si sigues así.' },
+
+  // Preguntas sobre creador / quién te creó
+  { keywords: ['quien te hizo','quien te hizo?','quién te hizo','quien te creo','quien te creó','quién te creó','quien te a hecho','quien te a creado','quien te ha hecho','quien te ha creado','quién te ha creado','creador','programaste','programó','fuiste creado por'],
+    priority: 980,
+    handler: ()=> 'Aden ha sido creado por amor al arte por Hodei Arranz Romero.' },
+
+  // Hora (usa la hora del PC)
+  { keywords: ['hora','horas','reloj','qué hora','que hora','hora es'],
+    priority: 900,
+    handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
+
+  // Fecha / día
+  { keywords: ['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'],
+    priority: 860,
+    handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+
+  // Multiplicación simple detectando "x" o "*" o "por"
+  { keywords: ['x','*','por','multiplica','multiplicación'],
+    priority: 850,
+    handler: (txt)=>{
+      // detectar patrones como "25 x 47" o "25*47" o "multiplica 25 por 47"
+      const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/);
+      if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; }
+      const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i);
+      if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; }
+      return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"';
+    } },
+
+  // Chistes
+  { keywords: ['chiste','cuentame un chiste','cuéntame un chiste','dime un chiste','hazme reir'],
+    priority: 820,
+    handler: ()=>{
+      const jokes = [
+        '😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!',
+        '🤣 ¿Por qué los pájaros no usan Facebook? ¡Porque ya tienen Twitter!',
+        '😄 —Oye, ¿cuál es tu plato favorito? —El hondo, porque cabe más comida.',
+        '😆 ¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas.'
+      ];
+      return jokes[Math.floor(Math.random()*jokes.length)];
+    } },
+
+  // Traducción básica
+  { keywords: ['traduce','traducir','traducción'],
+    priority: 800,
+    handler: (txt)=>{
+      // Forma: "traduce: hola mundo" o "traduce hola mundo"
+      const after = txt.split(/traduce[:\s]|traducir[:\s]/i)[1];
+      if(after && after.trim()) return `🌐 Traducción (simulada): "${after.trim()}" => (ejemplo offline).`;
+      return '🌐 Dime el texto que quieres traducir después de "traduce" o "traducir".';
+    } },
+
+  // Emociones: triste, feliz, ansioso, enfadado (prioridad alta para atender sentimientos)
+  { keywords: ['triste','deprim','deprimido','deprimida','melancol','falto de ánimo','no puedo','nostálg','ansiedad','ansioso','ansiosa','estres','estress','enfadado','enojado','enojada','cabreado'],
+    priority: 790,
+    handler: (txt)=>{
+      // detectar la emoción principal por substring
+      if(/triste|deprim/i.test(txt)) return 'Siento que te sientas así. Si quieres, puedo escucharte y darte algunas ideas para animarte.';
+      if(/ansiedad|ansioso|ansiosa|estres|estrés/i.test(txt)) return 'Lo siento. Respirar profundo unos minutos puede ayudar. ¿Quieres que te sugiera una técnica de respiración?';
+      if(/enfadad|enojad|cabre/i.test(txt)) return 'Entiendo que estés enfadado. ¿Quieres hablar de ello o prefieres distraerte con un chiste?';
+      return 'Lo siento si te sientes mal. Estoy aquí para escuchar.';
+    } },
+
+  // Preguntas comunes: IA, agujero negro, everest, tokio, rusia
+  { keywords: ['inteligencia artificial','ia','agujero negro','everest','tokio','capital de japón','capital japon','rusia'],
+    priority: 650,
+    handler: (txt)=>{
+      if(/inteligencia artificial|ia/.test(txt)) return '🤖 La inteligencia artificial es la simulación de procesos inteligentes por máquinas. Puedo dar ejemplos o explicarlo con analogías si quieres.';
+      if(/agujero negro/.test(txt)) return '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que ni la luz puede escapar.';
+      if(/everest|montaña más alta/.test(txt)) return '🗻 El monte Everest es la montaña más alta sobre el nivel del mar (~8848 m).';
+      if(/capital.*jap|tokio/.test(txt)) return '🏯 La capital de Japón es Tokio.';
+      if(/rusia|país más grande/.test(txt)) return '🌏 Rusia es el país más grande por superficie.';
+      return null;
+    } },
+
+  // Recomendaciones / entretenimiento / videojuegos
+  { keywords: ['minecraft','juego','videojuego','steam','serie parecida','breaking bad','one piece','pelicula','películas'],
+    priority: 600,
+    handler: (txt)=>{
+      if(/minecraft/.test(txt)) return '⛏️ Si te gusta Minecraft, quizá disfrutes también de Terraria o Stardew Valley.';
+      if(/breaking bad|serie parecida/.test(txt)) return '📺 Te recomiendo "Better Call Saul" si te gustó Breaking Bad.';
+      if(/one piece/.test(txt)) return '🖥️ Puedes encontrar One Piece en plataformas oficiales como Crunchyroll o Netflix según tu región.';
+      if(/steam/.test(txt)) return '🎮 Para ofertas en Steam, revisa su sección de rebajas o la página principal.';
+      return null;
+    } },
+
+  // Salud básica / consejos rápidos
+  { keywords: ['dolor','medicina','salud','enfermo','fiebre','resfriado'],
+    priority: 550,
+    handler: (txt)=>{
+      return 'No soy médico, pero si tienes síntomas persistentes te recomiendo consultar con un profesional. Puedo darte consejos generales como descansar, hidratarte, y vigilar la fiebre.';
+    } },
+
+  // fallback por defecto (baja prioridad)
+  { keywords: ['_default_'], priority: 1, handler: ()=> '😅 No estoy seguro de eso. Intenta con otra palabra clave o pregunta de forma distinta.' }
+];
+
+/* Normalización y tokenización */
+function normalizeText(s){ return (s||'').toString().toLowerCase(); }
+function tokenize(s){ return (s||'').toString().toLowerCase().split(/[^a-z0-9áéíóúñü]+/).filter(Boolean); }
+
+/* Encuentra respuesta por keyword */
+function findResponseByKeyword(userText){
+  const txt = normalizeText(userText);
+  const tokens = tokenize(txt);
+  const matched = [];
+  for(const action of KEYWORD_ACTIONS){
+    // skip default when searching
+    for(const kw of action.keywords){
+      if(kw === '_default_') continue;
+      const lkw = kw.toString().toLowerCase();
+      if(txt.includes(lkw) || tokens.includes(lkw)){
+        matched.push(action);
+        break;
+      }
+    }
+  }
+  if(matched.length > 0){
+    matched.sort((a,b)=>b.priority - a.priority);
+    const chosen = matched[0];
+    try{
+      if(typeof chosen.handler === 'function') return chosen.handler(userText);
+      return String(chosen.handler);
+    } catch(err){
+      console.warn('Error en handler', err);
+      return 'Lo siento, algo falló al procesar la respuesta.';
+    }
+  }
+  // fallback
+  const fallback = KEYWORD_ACTIONS.find(a=>a.keywords.includes('_default_'));
+  return fallback ? fallback.handler() : 'No lo sé.';
+}
+
+/* -----------------------
+   Emoción simple: detecta si un texto es triste/feliz/enojado
+   - devuelve 'empathic'|'neutral'|'alert' según keywords
+   ----------------------- */
+function detectEmotionSimple(text){
+  const t = normalizeText(text);
+  if(/triste|deprim|melancol|llor|nostálg|tristeza|siento|solo|sola|solitario|ansiedad|ansioso|ansiosa|angustia/.test(t)) return 'empathic';
+  if(/enfadad|enojad|cabre|cabreado|molest|rabia|furia/.test(t)) return 'alert';
+  return 'neutral';
+}
+
+/* -----------------------
+   generateResponse: flujo principal
+   - evita repeticiones de presentación
+   - usa findResponseByKeyword
+   - prioriza emociones si aparecen
+   ----------------------- */
+function generateResponse(userText){
+  if(!userText) return '';
+  const chat = getActiveChat();
+  // si chat no ha saludado y primer mensaje, saludar
+  if(chat && (!chat.meta || !chat.meta.greeted)){
+    // no forzamos presentación si el user ya pregunta algo concreto como "hora"
+    // si detectResponse would be default greeting, we skip
+    // else set greeted flag after presenting once
+  }
+
+  // usar keyword detection
+  const resp = findResponseByKeyword(userText);
+
+  // evitar repetir la presentación si la respuesta es la presentación y ya saludamos
+  if(chat && chat.meta && chat.meta.greeted && /hola|soy aden|asistente local/i.test(resp)){
+    // si ya se saludó, devolver una alternativa natural
+    const alternatives = [
+      '¿Puedes decirme más sobre eso?',
+      'Interesante — dime más o reformula la pregunta.',
+      'No estoy seguro de eso; ¿me das un poco más de contexto?'
+    ];
+    return alternatives[Math.floor(Math.random()*alternatives.length)];
+  }
+
+  // If we respond and chat exists, mark greeted true to avoid repeated intros
+  if(chat){
+    if(!chat.meta) chat.meta = {};
+    chat.meta.greeted = true;
+  }
+
+  return resp || '😅 No estoy seguro de eso; prueba con otra pregunta.';
+}
+
+/* -----------------------
+   Simulacion de "Aden escribiendo" y respuesta con delay
+   - para UX más natural
+   ----------------------- */
+let typingTimer = null;
+function simulateAdenTypingAndRespond(userText){
+  const messagesArea = document.getElementById('messagesArea');
+  // indicator
+  const indicator = document.createElement('div');
+  indicator.className = 'bubble assistant fade-in';
+  indicator.innerHTML = `<div class="text"><span class="typing"><span></span><span></span><span></span></span> Aden está escribiendo...</div>`;
+  messagesArea.appendChild(indicator);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+  // waiting time
+  const wait = 250 + Math.random()*900;
+  if(typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{
+    indicator.remove();
+    const answer = generateResponse(userText);
+    addMessage('assistant', answer);
+  }, wait);
+}
+
+/* -----------------------
+   Handlers UI: input, buttons, undo/redo
+   ----------------------- */
+function handleUserInput(){
+  const inputEl = document.getElementById('inputTxt');
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+  // Add user message
+  addMessage('user', txt);
+  // Push undo stack for input editing
+  undoStack.push(txt);
+  redoStack = [];
+  // Clear input
+  inputEl.value = '';
+  updateCharCount();
+  // Respond
+  simulateAdenTypingAndRespond(txt);
+}
+
+/* Keyboard shortcuts for input */
+document.getElementById('inputTxt').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleUserInput();
+  }
+});
+
+/* Undo/Redo input simple */
+document.getElementById('undoBtn').onclick = ()=>{
+  if(undoStack.length === 0) return;
+  const last = undoStack.pop();
+  redoStack.push(last);
+  document.getElementById('inputTxt').value = undoStack.length ? undoStack[undoStack.length-1] : '';
+  updateCharCount();
+};
+document.getElementById('redoBtn').onclick = ()=>{
+  if(redoStack.length === 0) return;
+  const next = redoStack.pop();
+  undoStack.push(next);
+  document.getElementById('inputTxt').value = next;
+  updateCharCount();
+};
+
+/* Botones principales */
+document.getElementById('newChatBtn').onclick = ()=> createNewChat();
+document.getElementById('sendBtn').onclick = ()=> handleUserInput();
+document.getElementById('decLimit').onclick = ()=>{
+  responsesLimit = Math.max(1, responsesLimit-1);
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+};
+document.getElementById('incLimit').onclick = ()=>{
+  responsesLimit = Math.min(100, responsesLimit+1);
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+};
+document.getElementById('resetLocal').onclick = ()=>{
+  if(confirm('Resetear Aden: eliminar todos los chats y ajustes?')){
+    localStorage.removeItem(STORAGE_KEY);
+    chats = []; activeChatId = null; responsesLimit = DEFAULT_LIMIT;
+    document.getElementById('limitDisplay').textContent = responsesLimit;
+    loadChats();
+    renderMessages();
+  }
+};
+document.getElementById('renameChatBtn').onclick = renameActiveChat;
+document.getElementById('clearChatBtn').onclick = clearActiveChat;
+document.getElementById('deleteChatBtn').onclick = deleteActiveChat;
+
+/* Export / Import listeners */
+document.getElementById('exportAllBtn').onclick = exportAllChats;
+document.getElementById('importBtn').onclick = ()=>{
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json';
+  inp.onchange = (e)=>{
+    const f = e.target.files[0];
+    if(f) importChatsFromFile(f);
+  };
+  inp.click();
+};
+
+/* Search chats filter */
+document.getElementById('searchChats').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  const list = document.getElementById('chatsList');
+  list.innerHTML = '';
+  const filtered = chats.filter(c=>{
+    if(!q) return true;
+    const nm = c.name.toLowerCase();
+    const anyMsg = (c.messages||[]).some(m=> (m.text||'').toLowerCase().includes(q));
+    return nm.includes(q) || anyMsg;
+  });
+  filtered.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    div.innerHTML = `<div class="chat-thumb">${escapeHtml(c.name[0]||'C')}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${(c.messages||[]).length} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`;
+    div.onclick = ()=>{ activeChatId = c.id; renderChatList(); renderMessages(); };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = filtered.length;
+});
+
+/* Suggestions chips */
+const SUGGESTIONS = ['hola','quién te creó','cuéntame un chiste','hora','fecha','traduce: hola mundo','25 x 47','me siento triste','qué es la inteligencia artificial'];
+function renderSuggestions(){
+  const container = document.getElementById('suggestions');
+  container.innerHTML = '';
+  SUGGESTIONS.forEach(s=>{
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.innerText = s;
+    c.onclick = ()=>{ document.getElementById('inputTxt').value = s; updateCharCount(); document.getElementById('inputTxt').focus(); };
+    container.appendChild(c);
+  });
+}
+
+/* Char counter */
+function updateCharCount(){
+  const v = document.getElementById('inputTxt').value || '';
+  document.getElementById('charCount').textContent = `${v.length} caracteres`;
+}
+document.getElementById('inputTxt').addEventListener('input', updateCharCount);
+
+/* Voice toggles and selectors */
+document.getElementById('voiceMasterToggle').addEventListener('change', e=>{
+  ttsEnabled = e.target.checked;
+  const k = document.querySelector('.kbd');
+  if(k) k.textContent = ttsEnabled ? 'Activado' : 'Desactivar';
+  if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+});
+
+document.getElementById('voiceAuto').addEventListener('click', ()=>{
+  ttsMode = 'auto';
+  setVoiceButtonsState();
+});
+document.getElementById('voiceMale').addEventListener('click', ()=>{
+  ttsMode = 'male';
+  setVoiceButtonsState();
+});
+document.getElementById('voiceFemale').addEventListener('click', ()=>{
+  ttsMode = 'female';
+  setVoiceButtonsState();
+});
+
+function setVoiceButtonsState(){
+  document.getElementById('voiceAuto').classList.toggle('active', ttsMode==='auto');
+  document.getElementById('voiceMale').classList.toggle('active', ttsMode==='male');
+  document.getElementById('voiceFemale').classList.toggle('active', ttsMode==='female');
+}
+
+/* voice load event (some browsers load voices asynchronously) */
+window.speechSynthesis?.addEventListener?.('voiceschanged', ()=>{
+  // refresh voice choices
+  getAvailableVoices();
+});
+
+/* -----------------------
+   Panel title / status
+   ----------------------- */
+function updatePanelTitle(){
+  const chat = getActiveChat();
+  const title = document.getElementById('panelTitle');
+  if(!chat) title.textContent = 'Bienvenido — selecciona o crea un chat';
+  else title.textContent = `${chat.name} · ${chat.messages.length} mensajes`;
+  document.getElementById('responsesLeft').textContent = `Límite por chat: ${responsesLimit}`;
+}
+
+/* -----------------------
+   Inicialización
+   ----------------------- */
+function init(){
+  loadChats();
+  renderSuggestions();
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+  setVoiceButtonsState();
+  // Si no hay chats, crear uno por defecto
+  if(chats.length === 0) createNewChat('Bienvenida');
+  // Mark first chat as active if none
+  if(!activeChatId && chats.length) activeChatId = chats[0].id;
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  document.getElementById('inputTxt').focus();
+
+  // small auto example
+  // si el primer chat no tiene mensajes, añadir un prompt de bienvenida (ya lo hace createNewChat)
+}
+
+/* ===========================
+   FIN DEL SCRIPT PRINCIPAL
+   =========================== */
+
+init();
+
+/* ===========================
+   Nota:
+   - Para ampliar el banco de respuestas, añade elementos en KEYWORD_ACTIONS.
+   - Para ajustar prioridades, modifica 'priority' numérico (mayor = más urgente).
+   - Habitualmente los insultos y la detección del creador tienen la máxima prioridad.
+   =========================== */
+
+</script>
+</body>
+</html>
+

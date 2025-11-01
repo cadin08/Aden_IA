@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso</title>
+<style>
+  :root{
+    --bg-0:#0a0f1c;
+    --bg-1:#101622;
+    --panel:#1a2333;
+    --glass: rgba(255,255,255,0.03);
+    --muted:#a0b0c8;
+    --accent-1:#57e4b8;
+    --accent-2:#6fb7ff;
+    --danger:#ff6b6b;
+    --card:#071827;
+    --radius:14px;
+    --shadow: 0 12px 32px rgba(2,8,23,0.6);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff}
+  .wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px}
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);min-height:640px;display:flex;flex-direction:column}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:54px;height:54px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#042b2a;font-size:18px}
+  .brand h1{margin:0;font-size:16px}
+  .brand p{margin:0;color:var(--muted);font-size:12px}
+  .controls{display:flex;gap:8px;margin-top:12px}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:600}
+  .search{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+  .chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+  .chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+  .chat-item:hover{transform:translateY(-4px);box-shadow:0 8px 20px rgba(2,6,23,0.4)}
+  .chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+  .chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+  .chat-meta h4{margin:0;font-size:13px}
+  .chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);min-height:640px;display:flex;flex-direction:column}
+  .panel-header{display:flex;align-items:center;justify-content:space-between}
+  .panel-header .left{display:flex;gap:12px;align-items:center}
+  .panel-header h2{margin:0;font-size:18px}
+  .panel-actions{display:flex;gap:8px}
+  .messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+  .bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+  .bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+  .bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+  .compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+  textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+  .compose .right{display:flex;flex-direction:column;gap:8px}
+  .tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+  .chip:hover{transform:translateY(-3px)}
+  .typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+  .typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.12s}
+  .typing span:nth-child(3){animation-delay:.24s}
+  @keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+  .muted{color:var(--muted)}
+  .danger{color:var(--danger)}
+  .fade-in{animation:fadeIn .28s ease both}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">ADN</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+    <div class="controls">
+      <button id="newChatBtn" class="btn primary">+ Nuevo</button>
+      <button id="importBtn" class="btn">Importar</button>
+      <button id="exportAllBtn" class="btn">Exportar</button>
+    </div>
+    <div class="search">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." />
+      <div class="meta-pill" id="chatCount">0</div>
+    </div>
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite"></div>
+    <div class="footer">
+      <div class="muted">Límite respuestas/chat: <span id="limitDisplay">12</span></div>
+      <div style="display:flex;gap:8px">
+        <button id="decLimit" class="btn">-</button>
+        <button id="incLimit" class="btn">+</button>
+        <button id="resetLocal" class="btn">Reset</button>
+      </div>
+    </div>
+  </aside>
+  <main class="panel">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn">Renombrar</button>
+        <button id="clearChatBtn" class="btn">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger">Eliminar</button>
+      </div>
+    </div>
+    <div class="messages" id="messagesArea" aria-live="polite">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "hola", "cuéntame un chiste", "ayuda con código".</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions"></div>
+      <div class="compose">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost">↶</button><button id="redoBtn" class="btn ghost">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* ====== Aden 2.0 ====== */
+const STORAGE_KEY='aden_local';
+const DEFAULT_LIMIT=12;
+let chats=[],activeChatId=null,responsesLimit=DEFAULT_LIMIT;
+
+function loadChats(){
+  const saved=localStorage.getItem(STORAGE_KEY);
+  if(saved) chats=JSON.parse(saved);
+  else chats=[];
+  renderChatList();
+}
+function saveChats(){localStorage.setItem(STORAGE_KEY,JSON.stringify(chats));}
+
+function renderChatList(){
+  const list=document.getElementById('chatsList'); list.innerHTML='';
+  chats.forEach(c=>{
+    const div=document.createElement('div');
+    div.className='chat-item fade-in';
+    if(c.id===activeChatId) div.classList.add('active');
+    div.innerHTML=`<div class="chat-thumb">${c.name[0].toUpperCase()}</div>
+      <div class="chat-meta"><h4>${c.name}</h4><p>${c.messages.length} mensajes</p></div>`;
+    div.onclick=()=>{activeChatId=c.id;renderChatList();renderMessages();};
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent=chats.length;
+}
+
+function getActiveChat(){return chats.find(c=>c.id===activeChatId);}
+
+function renderMessages(){
+  const area=document.getElementById('messagesArea');
+  area.innerHTML='';
+  const chat=getActiveChat();
+  if(!chat){area.innerHTML='<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>';return;}
+  chat.messages.forEach(m=>{
+    const div=document.createElement('div');
+    div.className='bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    div.innerHTML=`<div class="text">${m.text}</div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop=area.scrollHeight;
+}
+
+function addMessage(role,text){
+  const chat=getActiveChat();
+  if(!chat) return;
+  chat.messages.push({role,text,timestamp:Date.now()});
+  saveChats();
+  renderMessages();
+}
+
+function createNewChat(){
+  const id='chat-'+Date.now();
+  const name='Chat '+(chats.length+1);
+  chats.push({id,name,messages:[]});
+  activeChatId=id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+}
+
+document.getElementById('newChatBtn').onclick=createNewChat;
+
+document.getElementById('sendBtn').onclick=()=>{handleUserInput();};
+
+document.getElementById('inputTxt').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();handleUserInput();}
+});
+
+function handleUserInput(){
+  const input=document.getElementById('inputTxt');
+  const txt=input.value.trim();
+  if(!txt) return;
+  addMessage('user',txt);
+  input.value='';
+  respondAden(txt);
+}
+
+function respondAden(userText){
+  const response=generateResponse(userText);
+  setTimeout(()=>{addMessage('assistant',response);},400+Math.random()*400);
+}
+
+function generateResponse(text){
+  text=text.toLowerCase();
+  const greetings=['hola','buenas','buenos días','buenas tardes','hey','hi','hello'];
+  if(greetings.some(g=>text.includes(g))) return '¡Hola! 😄 Soy Aden, tu asistente amistoso. ¿Cómo estás hoy?';
+  if(text.includes('hora')) return `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.`;
+  if(text.includes('día')||text.includes('fecha')) return `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.`;
+  if(text.includes('clima')||text.includes('tiempo')) return '🌤️ No puedo consultar en tiempo real, pero puedes mirar en tu app de clima favorita.';
+  if(text.includes('llover')) return '☔ No puedo predecir el clima exacto, pero ¡crucemos los dedos!'; 
+  if(text.includes('capital de japón')) return '🏯 La capital de Japón es Tokio.';
+  if(text.includes('resiliencia')) return '💪 Resiliencia significa la capacidad de superar situaciones difíciles y adaptarse.';
+  if(text.includes('electricidad')) return '⚡ La electricidad no fue inventada por una sola persona, pero Benjamin Franklin y Nikola Tesla hicieron grandes aportes.';
+  if(text.includes('habitantes')&&text.includes('españa')) return '🇪🇸 España tiene aproximadamente 47 millones de habitantes.';
+  if(text.match(/\b25\s*x\s*47\b/)) return '🧮 25 por 47 es 1175.';
+  if(text.includes('madrid')&&text.includes('parís')) return '🛫 La distancia entre Madrid y París es de unos 1050 km aproximadamente.';
+  if(text.includes('albert einstein')) return '🧠 Albert Einstein fue un físico teórico, famoso por la teoría de la relatividad.';
+  if(text.includes('agujero negro')) return '🌌 Un agujero negro es una región del espacio donde la gravedad es tan fuerte que nada puede escapar.';
+  if(text.includes('país más grande')) return '🌏 El país más grande del mundo es Rusia.';
+  if(text.includes('animal más rápido')) return '⚡ El animal más rápido es el halcón peregrino en picado, o el guepardo corriendo en tierra.';
+  if(text.includes('idiomas suiza')) return '🇨🇭 En Suiza se hablan alemán, francés, italiano y romanche.';
+  if(text.includes('planeta más cerca del sol')) return '☀️ Mercurio está más cerca del Sol.';
+  if(text.includes('cielo azul')) return '🔹 El cielo es azul porque la luz del sol se dispersa en la atmósfera y el azul se dispersa más.';
+  if(text.includes('montaña más alta')) return '🗻 El monte Everest es la montaña más alta del mundo, con 8848 m.';
+  if(text.includes('inteligencia artificial')) return '🤖 La inteligencia artificial es la simulación de la inteligencia humana en máquinas.';
+  if(text.includes('luz del sol')) return '☀️ La luz tarda unos 8 minutos y 20 segundos en llegar desde el Sol a la Tierra.';
+  if(text.includes('película')||text.includes('estreno')) return '🎬 No puedo consultar en tiempo real, pero revisa tu plataforma de cine favorita.';
+  if(text.includes('serie parecida a breaking bad')) return '📺 Te recomiendo "Better Call Saul", si te gustó Breaking Bad.';
+  if(text.includes('juegos steam')) return '🎮 Para ofertas actuales revisa la sección de rebajas de Steam, ¡siempre hay sorpresas!';
+  if(text.includes('despacito')) return '🎵 La canción “Despacito” es de Luis Fonsi y Daddy Yankee.';
+  if(text.includes('género reggaetón')) return '🎶 Reggaetón es un género de música urbana latina con ritmo marcado y bailables.';
+  if(text.includes('minecraft')) return '⛏️ Si te gusta Minecraft, puedes probar Terraria o Stardew Valley.';
+  if(text.includes('videojuego más vendido')) return '🎮 El videojuego más vendido de la historia es Minecraft.';
+  if(text.includes('one piece')) return '🖥️ Puedes ver One Piece en plataformas de streaming oficiales como Crunchyroll o Netflix según tu región.';
+  if(text.includes('linux ligero')) return '🐧 Linux ligero y completo: te recomiendo Linux Mint XFCE o Xubuntu.';
+  if(text.includes('ssd')) return '💾 Una SSD es una unidad de almacenamiento rápida que mejora el rendimiento del PC.';
+  if(text.includes('copiar seguridad')) return '💽 Para hacer copia de seguridad en OneDrive, simplemente arrastra tus archivos a la carpeta de OneDrive.';
+  if(text.includes('correo formal')) return '✉️ Puedo ayudarte a redactar un correo formal, dime el asunto y destinatario.';
+  if(text.includes('currículum')) return '📄 Claro, puedo ayudarte a hacer un currículum profesional.';
+  if(text.includes('traduce')||text.includes('traducir')) return '🌐 Pásame el texto y te lo traduzco.';
+  if(text.includes('chiste')) return '😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!';
+  if(text.includes('historia corta')) return '📖 Érase una vez un pequeño robot llamado Aden que soñaba con viajar por la galaxia...';
+  return '😅 Hmm, no estoy seguro de eso. Pero podemos hablar de cualquier otra cosa o prueba con otra pregunta.';
+}
+
+/* Inicialización */
+loadChats();
+document.getElementById('limitDisplay').textContent=responsesLimit;
+</script>
+</body>
+</html>
+

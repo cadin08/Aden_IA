@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso (v3)</title>
+<style>
+  /* ======================
+     Aden 3.0 - Styles
+     ====================== */
+  :root{
+    --bg-0:#07121a;
+    --bg-1:#0e1a27;
+    --panel:#11202b;
+    --glass: rgba(255,255,255,0.03);
+    --muted:#9fb0c6;
+    --accent-1:#57e4b8;
+    --accent-2:#6fb7ff;
+    --danger:#ff6b6b;
+    --card:#071827;
+    --radius:14px;
+    --shadow: 0 14px 36px rgba(2,8,23,0.6);
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+    color-scheme: dark;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff}
+  .wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:720px}
+  .sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#022b2a;font-size:18px}
+  .brand h1{margin:0;font-size:16px}
+  .brand p{margin:0;color:var(--muted);font-size:12px}
+  .controls{display:flex;gap:8px;margin-top:12px}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+  .btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+  .btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03)}
+  .search{display:flex;gap:8px;margin-top:12px;align-items:center}
+  .search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+  .chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+  .chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+  .chat-item:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,0.35)}
+  .chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+  .chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+  .chat-meta h4{margin:0;font-size:13px}
+  .chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+  .panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column}
+  .panel-header{display:flex;align-items:center;justify-content:space-between}
+  .panel-header .left{display:flex;gap:12px;align-items:center}
+  .panel-header h2{margin:0;font-size:18px}
+  .panel-actions{display:flex;gap:8px}
+  .messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+  .bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+  .bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+  .bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+  .compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+  textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+  .compose .right{display:flex;flex-direction:column;gap:8px}
+  .tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+  .chip:hover{transform:translateY(-3px)}
+  .typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+  .typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+  .typing span:nth-child(2){animation-delay:.12s}
+  .typing span:nth-child(3){animation-delay:.24s}
+  @keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+  .muted{color:var(--muted)}
+  .danger{color:var(--danger)}
+  .fade-in{animation:fadeIn .28s ease both}
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  /* Settings panel */
+  .settings-panel{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.02)}
+  .toggle{display:flex;align-items:center;gap:10px}
+  .kbd{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:6px;font-size:12px}
+  .footer-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-top:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+  .small{font-size:12px;color:var(--muted)}
+  .accent{color:var(--accent-1)}
+  .search-highlight{background:linear-gradient(90deg, rgba(111,183,255,0.12), rgba(87,228,184,0.06));padding:4px 8px;border-radius:8px}
+  /* accessibility */
+  [tabindex="0"]:focus{outline:2px solid rgba(111,183,255,0.08)}
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">ADN</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Crear nuevo chat">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chats JSON">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search" aria-label="Buscar chats">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." aria-label="Buscar chats"/>
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite" aria-label="Lista de chats"></div>
+
+    <div class="settings-panel" aria-label="Ajustes rápidos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Límite respuestas/chat</div>
+          <div class="muted" id="limitDisplay">12</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="decLimit" class="btn">-</button>
+          <button id="incLimit" class="btn">+</button>
+          <button id="resetLocal" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <hr style="border:0;border-top:1px dashed rgba(255,255,255,0.02);margin:10px 0"/>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div>
+          <div class="small">Voz &mdash; Lector</div>
+          <div class="muted">Sintetizador de voz local (SpeechSynthesis)</div>
+        </div>
+        <div>
+          <label class="toggle">
+            <input id="voiceToggle" type="checkbox" aria-label="Alternar lector de voz"/>
+            <span class="kbd">Activar</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="small">Personalidad</div>
+        <div class="muted">La personalidad por defecto se mantiene (amistosa y profesional).</div>
+      </div>
+    </div>
+
+    <div style="margin-top:12px" class="footer-bar" aria-hidden="false">
+      <div>
+        <div class="small">Atajos</div>
+        <div class="muted">Enter = enviar · Shift+Enter = nueva línea</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small accent">Aden v3</div>
+        <div class="muted">Local · Off-line</div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="panel" role="main">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona o crea un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar mensajes">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea" aria-live="polite" aria-label="Mensajes">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "hola", "cuéntame un chiste", "quién te creó".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Enviar mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost" title="Deshacer">↶</button><button id="redoBtn" class="btn ghost" title="Rehacer">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+/* =========================
+   Aden 3.0 - JavaScript
+   - Mantengo STORAGE_KEY y la compatibilidad con tu formato.
+   - Amplío la detección de frases y añado lector de voz.
+   - Agrego mejoras en el UI y funciones auxiliares.
+   ========================= */
+
+const STORAGE_KEY = 'aden_local';     // clave localStorage (compatibilidad mantenida)
+const DEFAULT_LIMIT = 12;             // límite inicial de respuestas por chat
+let chats = [];                       // arreglo de chats
+let activeChatId = null;              // id del chat activo
+let responsesLimit = DEFAULT_LIMIT;   // límite dinámico
+let undoStack = [];                   // para deshacer/rehacer (entrada)
+let redoStack = [];
+let voiceEnabled = false;             // estado del lector de voz
+let lastAssistantUtterance = '';      // texto del último mensaje del asistente
+
+/* ====== Utilidades / Helpers ====== */
+function uid(prefix='id'){ return prefix+'-'+Math.random().toString(36).slice(2,10); }
+
+function saveChats(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+function loadChats(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try { chats = JSON.parse(saved) || []; }
+    catch(e){ console.warn('No se pudo parsear localStorage, reseteando.'); chats = []; localStorage.removeItem(STORAGE_KEY); }
+  } else chats = [];
+  renderChatList();
+}
+
+/* Formatea tiempo legible */
+function formatTime(ts){
+  const d = new Date(ts);
+  return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+}
+
+/* Safe text for HTML */
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* ====== UI: Render lista de chats ====== */
+function renderChatList(){
+  const list = document.getElementById('chatsList'); list.innerHTML='';
+  // Orden: chats más recientes al final (o por ultimo mensaje)
+  chats.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    const initial = c.name ? c.name[0].toUpperCase() : 'C';
+    const messagesCount = c.messages ? c.messages.length : 0;
+    div.innerHTML = `
+      <div class="chat-thumb" aria-hidden="true">${escapeHtml(initial)}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${messagesCount} mensajes · ${c.updated ? formatTime(c.updated) : ''}</p></div>
+    `;
+    div.onclick = () => {
+      activeChatId = c.id;
+      renderChatList();
+      renderMessages();
+      updatePanelTitle();
+    };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = chats.length;
+}
+
+/* ====== UI: Render mensajes del chat activo ====== */
+function getActiveChat(){ return chats.find(x=>x.id===activeChatId); }
+
+function renderMessages(){
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  const chat = getActiveChat();
+  if(!chat){
+    area.innerHTML = '<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>';
+    updatePanelTitle();
+    return;
+  }
+
+  if(!chat.messages || chat.messages.length===0){
+    area.innerHTML = '<div class="muted">Escribe algo para que Aden responda. Prueba: "hola", "quién te creó", "cuéntame un chiste".</div>';
+    updatePanelTitle();
+    return;
+  }
+
+  chat.messages.forEach(m => {
+    const div = document.createElement('div');
+    div.className = 'bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    const ts = m.timestamp ? formatTime(m.timestamp) : '';
+    // Permitir resaltar términos buscados
+    const content = escapeHtml(m.text).replace(/\n/g,'<br>');
+    div.innerHTML = `<div class="text">${content}</div><div class="meta"><span class="small muted">${m.role==='user'?'Tú':'Aden'}</span><span class="muted small">${ts}</span></div>`;
+    area.appendChild(div);
+  });
+
+  // scroll al final
+  area.scrollTop = area.scrollHeight;
+}
+
+/* ====== Mensajes: añadir y guardar ====== */
+function addMessage(role, text, opts = {}){
+  const chat = getActiveChat();
+  if(!chat) return;
+  const msg = { role, text: String(text), timestamp: Date.now() };
+  chat.messages.push(msg);
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+  if(role === 'assistant'){
+    lastAssistantUtterance = text;
+    if(voiceEnabled) speakText(text);
+  }
+}
+
+/* ====== Crear nuevo chat (botón) ====== */
+function createNewChat(initialName){
+  const id = uid('chat');
+  const name = initialName || ('Chat '+(chats.length+1));
+  const newChat = { id, name, messages: [], created: Date.now(), updated: Date.now() };
+  chats.push(newChat);
+  activeChatId = id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+}
+
+/* ====== Borrar / renombrar / limpiar chat ====== */
+function deleteActiveChat(){
+  if(!activeChatId) return;
+  const idx = chats.findIndex(c=>c.id===activeChatId);
+  if(idx>=0){
+    if(!confirm('¿Seguro que quieres eliminar este chat?')) return;
+    chats.splice(idx,1);
+    activeChatId = chats.length ? chats[0].id : null;
+    saveChats();
+    renderChatList();
+    renderMessages();
+    updatePanelTitle();
+  }
+}
+
+function clearActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return;
+  if(!confirm('Vaciar mensajes del chat actual?')) return;
+  chat.messages = [];
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+}
+
+function renameActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return alert('Selecciona un chat primero.');
+  const newName = prompt('Nuevo nombre del chat:', chat.name);
+  if(newName && newName.trim()){
+    chat.name = newName.trim();
+    chat.updated = Date.now();
+    saveChats();
+    renderChatList();
+    updatePanelTitle();
+  }
+}
+
+/* ====== Import / Export (JSON) ====== */
+function exportAllChats(){
+  const dataStr = JSON.stringify(chats, null, 2);
+  const blob = new Blob([dataStr], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'aden_chats_export.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importChatsFromFile(file){
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const parsed = JSON.parse(e.target.result);
+      if(Array.isArray(parsed)){
+        // verificar estructura básica
+        parsed.forEach(p=>{
+          if(!p.id) p.id = uid('chat');
+          if(!p.messages) p.messages = [];
+        });
+        chats = chats.concat(parsed);
+        saveChats();
+        renderChatList();
+        alert('Importación completa.');
+      } else alert('Formato inválido: se esperaba un array de chats.');
+    } catch(err){
+      alert('Error al importar: '+err.message);
+    }
+  };
+  reader.readAsText(file);
+}
+
+/* ====== Lector de voz (SpeechSynthesis) ====== */
+function speakText(text){
+  if(!('speechSynthesis' in window)) return;
+  try {
+    window.speechSynthesis.cancel(); // detener cualquier otra
+    const ut = new SpeechSynthesisUtterance(String(text));
+    // Configuración cuidada: voz en español si está disponible
+    const voices = window.speechSynthesis.getVoices();
+    const esVoice = voices.find(v=>/es-|Spanish/i.test(v.lang) || /spanish/i.test(v.name));
+    if(esVoice) ut.voice = esVoice;
+    ut.rate = 1;
+    ut.pitch = 1;
+    ut.lang = 'es-ES';
+    window.speechSynthesis.speak(ut);
+  } catch(e){
+    console.warn('Error sintetizador de voz:', e);
+  }
+}
+
+/* ====== Detección de insultos / creador / keywords ====== */
+
+/*
+  - Lista de insultos comunes y variantes (ampliable).
+  - Lista de frases que piden "quién te creó" y sinónimos.
+  - Banco extenso de respuestas por temas (preguntas frecuentes, curiosidades, humor).
+*/
+
+/* insultos básicos — puedes ampliar */
+const INSULTS = [
+  'idiota','imbecil','tonto','estúpido','gilipollas','cabrón','mierda','hijo de puta',
+  'zorra','puta','demonio','idiota','bobo','subnormal','payaso','tarado','asco',
+  // formas suaves o con faltas
+  'gilipoll','tontito','tonta','tonto','imbec','pute','cabr','mierd','estup'
+];
+
+/* frases solicitando creador (variantes) */
+const CREATOR_TRIGGERS = [
+  'quien te hizo','quien te creo','quien te creó','quien te ha hecho','quien te a hecho','quien te a creado',
+  'quién te creó','quién te hizo','quién te ha hecho','quién te ha creado','quien te programo','quién te programó'
+];
+
+/* frases de saludo / despedida / estado */
+const GREETINGS = ['hola','buenas','buenos días','buenas tardes','buenas noches','hey','hi','hello','qué tal','qué pasa','como estás','cómo estás'];
+
+/* amplio banco de respuestas — orientado a español, con sinónimos y frases naturales */
+const RESPONSES_BANK = [
+  // identidad / creador
+  { triggers: CREATOR_TRIGGERS, response: 'Aden ha sido creado por amor al arte por Hodei Arranz Romero.' },
+
+  // insultos => respuesta firme
+  { triggers: INSULTS, response: 'No seguiré esta conversación si sigues así.' },
+
+  // saludos
+  { triggers: GREETINGS, response: '¡Hola! 😄 Soy Aden, tu asistente amistoso. ¿Cómo puedo ayudarte hoy?' },
+
+  // hora y fecha
+  { triggers: ['hora','qué hora es','qué hora'], response: ()=>`⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
+  { triggers: ['fecha','día','qué día es','qué fecha es'], response: ()=>`📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+
+  // clima
+  { triggers: ['clima','tiempo','lluvia','llover','nevando','temperatura'], response: '🌤️ No puedo consultar el clima en tiempo real, pero dime tu ciudad y te doy consejos generales.' },
+
+  // curiosidades / ciencias
+  { triggers: ['agujero negro','black hole','relatividad','einstein'], response: '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que nada, ni siquiera la luz, puede escapar. Einstein desarrolló la teoría de la relatividad.' },
+  { triggers: ['luz del sol','luz tarda','tiempo luz'], response: '☀️ La luz tarda unos 8 minutos y 20 segundos en viajar desde el Sol hasta la Tierra.' },
+  { triggers: ['planeta más cerca del sol','mercurio'], response: '☀️ Mercurio es el planeta más cercano al Sol.' },
+
+  // geografía / países
+  { triggers: ['capital de japón','capital japón','tokio'], response: '🏯 La capital de Japón es Tokio.' },
+  { triggers: ['país más grande','rusia'], response: '🌏 El país más grande del mundo por superficie es Rusia.' },
+
+  // cultura / entretenimiento
+  { triggers: ['despacito','luis fonsi','daddy yankee'], response: '🎵 “Despacito” es de Luis Fonsi y Daddy Yankee.' },
+  { triggers: ['breaking bad','serie parecida a breaking bad','better call saul'], response: '📺 Te recomiendo "Better Call Saul" si te gustó Breaking Bad.' },
+
+  // informática / linux / ssd
+  { triggers: ['linux ligero','mint xfce','xubuntu'], response: '🐧 Para equipos modestos: Linux Mint XFCE o Xubuntu son buenas opciones.' },
+  { triggers: ['ssd','disco ssd','unidad ssd'], response: '💾 Una SSD acelera cargas y arranques; recomendable para rendimiento.' },
+
+  // productividad
+  { triggers: ['copia de seguridad','backup','copiar seguridad','one drive','onedrive'], response: '💽 Para copias en OneDrive, arrastra archivos a la carpeta sincronizada o configura la copia automática.' },
+
+  // documentos / emails
+  { triggers: ['correo formal','escribir correo','email formal'], response: '✉️ Puedo ayudarte a redactar un correo formal: dime el asunto y el destinatario.' },
+  { triggers: ['currículum','cv','curriculum'], response: '📄 Puedo ayudarte a estructurar un currículum profesional. ¿Qué experiencia quieres resaltar?' },
+
+  // traducciones
+  { triggers: ['traduce','traducir','traducción'], response: '🌐 Pásame el texto y te lo traduzco.' },
+
+  // chistes / historias
+  { triggers: ['chiste','cuéntame un chiste','dime un chiste'], response: '😂 ¿Qué hace una abeja en el gimnasio? ¡Zum-ba!' },
+  { triggers: ['historia corta','cuento corto'], response: '📖 Érase una vez un pequeño robot llamado Aden que soñaba con ayudar a la gente...' },
+
+  // matemáticas sencillas (patrón)
+  { triggers: ['por','x','multiplic','por'], response: null }, // manejo via regex abajo
+
+  // fallback por defecto
+  { triggers: ['_default_'], response: '😅 Hmm, no estoy seguro de eso. Pero podemos hablar de cualquier otra cosa o prueba con otra pregunta.' }
+];
+
+/* ====== Matching flexible ====== */
+function findResponseFor(text){
+  const low = text.toLowerCase();
+
+  // 1) Búsqueda exacta por triggers (array de palabras/frases)
+  for(const item of RESPONSES_BANK){
+    for(const trig of item.triggers){
+      // si trig es exacto y aparece en texto
+      if(typeof trig === 'string' && low.includes(trig.toLowerCase())){
+        // Si la respuesta es función, ejecútala
+        if(typeof item.response === 'function') return item.response();
+        return item.response;
+      }
+      // si trig es RegExp (no usado aquí, pero soporte)
+      if(trig instanceof RegExp && trig.test(low)){
+        if(typeof item.response === 'function') return item.response();
+        return item.response;
+      }
+    }
+  }
+
+  // 2) Detección especial: multiplicaciones del estilo "25 x 47" o "25*47"
+  const mult = low.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/);
+  if(mult){
+    const a = parseInt(mult[1],10), b = parseInt(mult[2],10);
+    if(!isNaN(a) && !isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`;
+  }
+
+  // 3) Detección de "quien eres" o "quien te hizo" alternativa (por si no coinciden triggers)
+  if(/qu[ií]en.*(cre[óo]|hizo|program)/i.test(low)) return 'Aden ha sido creado por amor al arte por Hodei Arranz Romero.';
+
+  // 4) Detectar insultos de forma robusta (palabra completa, evitando matches parciales)
+  const words = low.split(/[^a-záéíóúüñ0-9]+/).filter(Boolean);
+  for(const w of words){
+    if(INSULTS.some(ins=>ins === w || w.startsWith(ins) || w.includes(ins))) return 'No seguiré esta conversación si sigues así.';
+  }
+
+  // 5) Si no se encontró, retorno fallback
+  const fallback = RESPONSES_BANK.find(r=>r.triggers.includes('_default_'));
+  return fallback ? fallback.response : 'Lo siento, no lo sé.';
+}
+
+/* ====== Generador de respuesta principal ====== */
+function generateResponse(inputText){
+  if(!inputText) return '';
+  const txt = inputText.trim();
+  // manejo de saludos y cortesía con prioridad
+  // findResponseFor ya cubre mucha lógica
+  const res = findResponseFor(txt);
+  // Si res es null o undefined, usar fallback
+  return res || '😅 No estoy seguro de eso; prueba con otra pregunta.';
+}
+
+/* ====== Delay / Typing simulation ====== */
+let typingTimer = null;
+function simulateAdenTypingAndRespond(userText){
+  const messagesArea = document.getElementById('messagesArea');
+  // typing indicator
+  const indicator = document.createElement('div');
+  indicator.className = 'bubble assistant fade-in';
+  indicator.innerHTML = `<div class="text"><span class="typing"><span></span><span></span><span></span></span> Aden está escribiendo...</div>`;
+  messagesArea.appendChild(indicator);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+
+  // tiempo aleatorio para simular pensamiento
+  const wait = 300 + Math.random()*800;
+  if(typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{
+    // quitar indicador
+    indicator.remove();
+    const answer = generateResponse(userText);
+    addMessage('assistant', answer);
+  }, wait);
+}
+
+/* ====== Interfaz: manejadores de entrada ====== */
+function handleUserInput(){
+  const input = document.getElementById('inputTxt');
+  const txt = input.value.trim();
+  if(!txt) return;
+  // Añadir mensaje del usuario
+  addMessage('user', txt);
+  // push para undo
+  undoStack.push(txt);
+  redoStack = [];
+  // limpiar campo
+  input.value = '';
+  updateCharCount();
+  // Responder
+  simulateAdenTypingAndRespond(txt);
+}
+
+/* ====== Atajos y listeners de teclado ====== */
+document.getElementById('inputTxt').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){
+    e.preventDefault();
+    handleUserInput();
+  }
+});
+
+/* Undo/Redo funcional simple (entrada) */
+document.getElementById('undoBtn').onclick = ()=>{
+  if(undoStack.length === 0) return;
+  const last = undoStack.pop();
+  redoStack.push(last);
+  document.getElementById('inputTxt').value = undoStack.length ? undoStack[undoStack.length-1] : '';
+  updateCharCount();
+};
+document.getElementById('redoBtn').onclick = ()=>{
+  if(redoStack.length === 0) return;
+  const next = redoStack.pop();
+  undoStack.push(next);
+  document.getElementById('inputTxt').value = next;
+  updateCharCount();
+};
+
+/* ====== Botones principales ====== */
+document.getElementById('newChatBtn').onclick = ()=>createNewChat();
+document.getElementById('sendBtn').onclick = ()=>handleUserInput();
+document.getElementById('decLimit').onclick = ()=>{
+  responsesLimit = Math.max(1, responsesLimit-1);
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+};
+document.getElementById('incLimit').onclick = ()=>{
+  responsesLimit = Math.min(100, responsesLimit+1);
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+};
+document.getElementById('resetLocal').onclick = ()=>{
+  if(confirm('Resetear Aden: eliminar todos los chats y ajustes?')){
+    localStorage.removeItem(STORAGE_KEY);
+    chats = []; activeChatId = null; responsesLimit = DEFAULT_LIMIT;
+    document.getElementById('limitDisplay').textContent = responsesLimit;
+    loadChats();
+    renderMessages();
+  }
+};
+document.getElementById('renameChatBtn').onclick = renameActiveChat;
+document.getElementById('clearChatBtn').onclick = clearActiveChat;
+document.getElementById('deleteChatBtn').onclick = deleteActiveChat;
+
+/* ====== Export / Import listeners ====== */
+document.getElementById('exportAllBtn').onclick = exportAllChats;
+document.getElementById('importBtn').onclick = ()=>{
+  const inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/json';
+  inp.onchange = (e)=>{
+    const f = e.target.files[0];
+    if(f) importChatsFromFile(f);
+  };
+  inp.click();
+};
+
+/* ====== Search chats (filtro) ====== */
+document.getElementById('searchChats').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  const list = document.getElementById('chatsList');
+  list.innerHTML = '';
+  const filtered = chats.filter(c => {
+    if(!q) return true;
+    const nm = c.name.toLowerCase();
+    const anyMsg = (c.messages||[]).some(m => (m.text||'').toLowerCase().includes(q));
+    return nm.includes(q) || anyMsg;
+  });
+  filtered.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    div.innerHTML = `<div class="chat-thumb">${escapeHtml(c.name[0]||'C')}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${(c.messages||[]).length} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`;
+    div.onclick = ()=>{ activeChatId = c.id; renderChatList(); renderMessages(); };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = filtered.length;
+});
+
+/* ====== Suggestions chips (ejemplos rápidos) ====== */
+const SUGGESTIONS = ['hola','quién te creó','cuéntame un chiste','hora','fecha','traduce: hola mundo','chiste','qué es la resiliencia','cuéntame una historia'];
+function renderSuggestions(){
+  const container = document.getElementById('suggestions');
+  container.innerHTML = '';
+  SUGGESTIONS.forEach(s=>{
+    const c = document.createElement('div');
+    c.className = 'chip';
+    c.innerText = s;
+    c.onclick = ()=>{ document.getElementById('inputTxt').value = s; updateCharCount(); document.getElementById('inputTxt').focus(); };
+    container.appendChild(c);
+  });
+}
+
+/* ====== Character counter and small helpers ====== */
+function updateCharCount(){
+  const v = document.getElementById('inputTxt').value || '';
+  document.getElementById('charCount').textContent = `${v.length} caracteres`;
+}
+document.getElementById('inputTxt').addEventListener('input', updateCharCount);
+
+/* ====== Voice Toggle ====== */
+document.getElementById('voiceToggle').addEventListener('change', (e)=>{
+  voiceEnabled = e.target.checked;
+  // actualizar UI pequeño
+  const k = document.querySelector('.kbd');
+  if(k) k.textContent = voiceEnabled ? 'Activado' : 'Desactivar';
+  if(!voiceEnabled && window.speechSynthesis) window.speechSynthesis.cancel();
+});
+
+/* ====== Update panel title / estado ====== */
+function updatePanelTitle(){
+  const chat = getActiveChat();
+  const title = document.getElementById('panelTitle');
+  if(!chat) title.textContent = 'Bienvenido — selecciona o crea un chat';
+  else title.textContent = `${chat.name} · ${chat.messages.length} mensajes`;
+  // mostrar respuestas restantes/uso (ejemplo simple)
+  document.getElementById('responsesLeft').textContent = `Límite por chat: ${responsesLimit}`;
+}
+
+/* ====== Inicialización y carga ====== */
+function init(){
+  loadChats();
+  renderSuggestions();
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+  // Si no hay chats, crear uno de ejemplo
+  if(chats.length === 0) createNewChat('Bienvenida');
+  // Render inicial
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  // Accessibility: focus input
+  document.getElementById('inputTxt').focus();
+
+  // Small easter egg: responde a "quien te a hecho" (aquí repetido por robustez)
+  // (ya se gestiona por triggers)
+}
+
+// iniciar
+init();
+
+/* ====== Código adicional: banco ampliado de respuestas (extendible)
+   He añadido muchos ejemplos y triggers arriba en RESPONSES_BANK.
+   Si quieres ampliar la lista, añade objetos en RESPONSES_BANK
+   con { triggers: ['frase1','frase2'], response: 'texto' } o response: ()=>String.
+*/
+
+/* ============================
+   FIN Aden 3.0
+   ============================ */
+</script>
+</body>
+</html>
+

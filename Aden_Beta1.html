@@ -1,0 +1,727 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente IA (Demo local)</title>
+<style>
+  :root{
+    --bg-0:#071126; --bg-1:#081426; --panel:#0b1a2a;
+    --muted:#9fb0c8; --accent-1:#57e4b8; --accent-2:#6fb7ff;
+    --radius:12px; --shadow: 0 12px 32px rgba(2,8,23,0.6);
+    font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  }
+  html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#eaf6ff}
+  .wrap{max-width:1180px;margin:26px auto;padding:18px;display:grid;grid-template-columns:320px 1fr;gap:18px}
+  .sidebar{padding:14px;border-radius:var(--radius);box-shadow:var(--shadow);background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));display:flex;flex-direction:column}
+  .logo{width:50px;height:50px;border-radius:10px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:800;color:#042b2a}
+  .brand{display:flex;gap:12px;align-items:center}
+  .controls{display:flex;gap:8px;margin:10px 0}
+  .btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer}
+  .btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26}
+  .search{display:flex;gap:8px;align-items:center}
+  .search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+  .chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+  .chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer}
+  .panel{padding:16px;border-radius:var(--radius);box-shadow:var(--shadow);background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));display:flex;flex-direction:column;min-height:64vh}
+  .panel-header{display:flex;align-items:center;justify-content:space-between}
+  .messages{flex:1;margin-top:12px;padding:14px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+  .bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45}
+  .bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+  .bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+  .compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+  textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:72px;resize:none}
+  .chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02)}
+  .muted{color:var(--muted)}
+  @media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+</style>
+</head>
+<body>
+<div class="wrap" role="application" aria-label="Aden — Asistente local">
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo">Ad</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente</h1>
+        <p class="muted">Demo local — todo en tu navegador</p>
+      </div>
+    </div>
+
+    <div class="controls">
+      <button id="newChatBtn" class="btn primary">+ Nuevo</button>
+      <button id="exportAllBtn" class="btn">Exportar</button>
+      <button id="resetLocal" class="btn">Reset</button>
+    </div>
+
+    <div class="search">
+      <input id="searchChats" placeholder="Buscar..." />
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite"></div>
+
+    <div style="margin-top:12px;font-size:13px;color:var(--muted)">
+      Límite respuestas/chat: <span id="limitDisplay">8</span>
+      <div style="margin-top:8px"><button id="decLimit" class="btn">-</button><button id="incLimit" class="btn">+</button></div>
+    </div>
+  </aside>
+
+  <main class="panel" aria-live="polite">
+    <div class="panel-header">
+      <div>
+        <h2 id="panelTitle">Selecciona o crea un chat</h2>
+        <div id="responsesLeft" class="muted"></div>
+      </div>
+      <div>
+        <button id="renameChatBtn" class="btn">Renombrar</button>
+        <button id="clearChatBtn" class="btn">Vaciar</button>
+        <button id="deleteChatBtn" class="btn">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea">
+      <div class="muted">Crea un chat y prueba preguntas (ej.: "¿Qué hora es?", "¿Quién fue Albert Einstein?", "Escríbeme un correo formal").</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="suggestions"></div>
+
+      <div class="compose">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)"></textarea>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button id="sendBtn" class="btn primary">Enviar</button>
+          <div style="display:flex;gap:6px">
+            <button id="undoBtn" class="btn">↶</button>
+            <button id="redoBtn" class="btn">↷</button>
+            <button id="ttsToggle" class="btn">🔊</button>
+          </div>
+          <div class="muted" id="charCount">0 caracteres</div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+/* Aden — Asistente local (todo en un archivo)
+   - Diseñado para responder a la extensa lista de preguntas del usuario
+   - Respuestas específicas, variantes y plantillas (para preguntas en tiempo real explica cómo obtener datos)
+   - TTS opcional
+*/
+
+/* ---------- Config y estado ---------- */
+const STORAGE_KEY = 'aden_v1';
+const DEFAULT_LIMIT = 8;
+let chats = [];
+let activeChatId = null;
+let assistantLimit = DEFAULT_LIMIT;
+let undoStack = [], redoStack = [];
+let ttsEnabled = false;
+
+/* ---------- Responsores: mapeo exhaustivo para la lista del usuario ----------
+   Cada objeto contiene:
+     id, keywords (tokens), phrases (frases clave), replies (strings o funciones)
+   Si la pregunta requiere datos en tiempo real (ej. "películas de hoy"), la respuesta explica
+   cómo obtenerlos y ofrece una plantilla fetch para el usuario.
+*/
+const RESPONDERS = [
+  /* --- Preguntas generales (hora, fecha, clima sin API, capitales, definiciones, hechos) --- */
+  { id:'time', keywords:['hora','qué hora','que hora es','hora es'], phrases:[], replies: [
+    () => `La hora local en tu navegador es ${new Date().toLocaleTimeString()}.`,
+    () => `Ahora mismo son las ${new Date().toLocaleTimeString()}.`
+  ], priority:20 },
+
+  { id:'today_date', keywords:['día','hoy','fecha','qué día'], phrases:['qué día es hoy','que dia es hoy'], replies:[
+    () => `Hoy es ${new Date().toLocaleDateString()} (${new Date().toLocaleString([], {weekday:'long', year:'numeric', month:'long', day:'numeric'})}).`
+  ], priority:20 },
+
+  { id:'weather_now', keywords:['tiempo ahora','qué tiempo','qué tiempo hace','clima ahora'], phrases:['qué tiempo hace ahora'], replies:[
+    'No puedo obtener el clima en tiempo real en esta demo local. Si quieres, te doy un ejemplo `fetch` para OpenWeatherMap para obtener el clima de una ciudad.',
+    (t) => `Para obtener el clima ahora mismo, usa esta plantilla Fetch (reemplaza YOUR_API_KEY y la ciudad):\n\n` +
+           "fetch(`https://api.openweathermap.org/data/2.5/weather?q=Ciudad&appid=YOUR_API_KEY&units=metric`)\n" +
+           ".then(r=>r.json()).then(j=>console.log(j))\n"
+  ], priority:18 },
+
+  { id:'rain_tomorrow', keywords:['llover mañana','va a llover mañana','lluvia mañana'], phrases:[], replies:[
+    'No puedo predecir el tiempo sin acceso a una API meteorológica. Puedo mostrarte cómo consultar previsiones (OpenWeatherMap / WeatherAPI) si quieres.',
+    'Plantilla: solicita la previsión para mañana con la API de tu elección y mira la probabilidad de precipitación (pop).'
+  ], priority:16 },
+
+  { id:'capital_japan', keywords:['capital japón','capital de japón','capital japan'], phrases:['cuál es la capital de japón','cual es la capital de japon'], replies:[
+    'La capital de Japón es Tokio (Tokyo).', 'Tokio es la capital y la ciudad más poblada de Japón.'
+  ], priority:20 },
+
+  { id:'resilience_def', keywords:['resiliencia','qué significa resiliencia','significa resiliencia'], phrases:[], replies:[
+    'Resiliencia: la capacidad de una persona o sistema para recuperarse y adaptarse ante circunstancias adversas o cambios.',
+    'En psicología, la resiliencia es la habilidad para afrontar dificultades, aprender de ellas y volver a un estado funcional.'
+  ], priority:16 },
+
+  { id:'who_invented_electricity', keywords:['inventó la electricidad','quien invento la electricidad','quién inventó la electricidad'], phrases:[], replies:[
+    'La "electricidad" no fue inventada por una sola persona; fue un fenómeno natural investigado por muchos. Figuras clave: Benjamin Franklin (experimentos con rayos), Michael Faraday (inducción electromagnética), Alessandro Volta (pila eléctrica), James Clerk Maxwell (teoría electromagnética).'
+  ], priority:15 },
+
+  { id:'population_spain', keywords:['habitantes españa','cuántos habitantes tiene españa','población españa'], phrases:[], replies:[
+    'No tengo acceso a la última cifra en tiempo real; la población cambia. Puedes consultar el INE (Instituto Nacional de Estadística) o Wikipedia para la cifra actualizada.',
+    'A modo orientativo, España tiene alrededor de 47-48 millones de habitantes (verifica la cifra exacta en fuentes oficiales).'
+  ], priority:14 },
+
+  { id:'math_simple', keywords:['25 por 47','25x47','25 * 47','cuánto es 25 por 47'], phrases:[], replies:[
+    () => `25 × 47 = ${25*47}.`
+  ], priority:20 },
+
+  { id:'distance_madrid_paris', keywords:['kilómetros madrid paris','distancia madrid parís','distancia madrid paris'], phrases:[], replies:[
+    'La distancia en línea recta entre Madrid y París es aproximadamente 1,050 km; la distancia por carretera/tren es mayor (alrededor de 1,270 km). Verifica rutas exactas en un buscador de mapas.'
+  ], priority:14 },
+
+  /* --- Cultura general y curiosidades --- */
+  { id:'einstein', keywords:['albert einstein','quién fue albert einstein','quien fue einstein'], phrases:[], replies:[
+    'Albert Einstein fue un físico teórico famoso por la teoría de la relatividad (E = mc²). Recibió el Nobel de Física en 1921 por su trabajo sobre el efecto fotoeléctrico.',
+    'Einstein (1879–1955) transformó la física moderna con la relatividad especial y general, y contribuyó a la física cuántica.'
+  ], priority:18 },
+
+  { id:'black_hole', keywords:['agujero negro','qué es un agujero negro'], phrases:[], replies:[
+    'Un agujero negro es una región del espacio con gravedad tan intensa que nada puede escapar de ella, ni siquiera la luz. Se forma cuando una masa suficientemente densa colapsa gravitacionalmente.',
+    'Se describen por su horizonte de sucesos; su existencia fue predicha por la teoría de la relatividad general de Einstein.'
+  ], priority:16 },
+
+  { id:'largest_country', keywords:['país más grande','país más grande del mundo','mayor país'], phrases:[], replies:[
+    'Rusia es el país más grande del mundo por superficie.',
+    'Rusia ocupa la mayor extensión territorial del planeta.'
+  ], priority:16 },
+
+  { id:'fastest_animal', keywords:['animal más rápido','animal mas rapido','qué animal es el más rápido'], phrases:[], replies:[
+    'En tierra, el guepardo (cheetah) es el más rápido, alcanzando hasta ~100–120 km/h en cortas distancias. En el aire, el halcón peregrino en picado supera los 300 km/h.'
+  ], priority:16 },
+
+  { id:'switzerland_languages', keywords:['idiomas suiza','idiomas que se hablan en suiza'], phrases:[], replies:[
+    'En Suiza se hablan cuatro idiomas oficiales: alemán, francés, italiano y romanche. Además hay dialectos y otras lenguas.'
+  ], priority:16 },
+
+  { id:'closest_planet', keywords:['planeta más cerca del sol','qué planeta está más cerca del sol'], phrases:[], replies:[
+    'Mercurio es el planeta más cercano al Sol.',
+    'Mercurio orbita más cerca del Sol que cualquier otro planeta del sistema solar.'
+  ], priority:16 },
+
+  { id:'why_sky_blue', keywords:['por qué el cielo es azul','por que el cielo es azul','por que el cielo es azul'], phrases:[], replies:[
+    'El cielo es azul debido a la dispersión Rayleigh: la atmósfera dispersa la luz del Sol, y las longitudes de onda cortas (azules) se dispersan más, haciendo que veamos el cielo azul.'
+  ], priority:15 },
+
+  { id:'highest_mountain', keywords:['montaña más alta','montaña más alta del mundo'], phrases:[], replies:[
+    'La montaña más alta del mundo es el monte Everest (aprox. 8,848 m sobre el nivel del mar).'
+  ], priority:16 },
+
+  { id:'what_is_ai', keywords:['qué es la inteligencia artificial','que es la inteligencia artificial','inteligencia artificial'], phrases:[], replies:[
+    'La inteligencia artificial (IA) es el campo que crea sistemas y algoritmos capaces de realizar tareas que, en humanos, requieren inteligencia: aprendizaje, razonamiento y percepción.',
+    'Incluye técnicas como aprendizaje automático, redes neuronales, visión por computadora y procesamiento de lenguaje natural.'
+  ], priority:16 },
+
+  { id:'light_travel_time', keywords:['tiempo luz sol tierra','cuánto tarda la luz del sol a la tierra','cuanto tarda la luz del sol a la tierra'], phrases:[], replies:[
+    'La luz del Sol tarda aproximadamente 8 minutos y 20 segundos en llegar a la Tierra (~499 segundos).'
+  ], priority:16 },
+
+  /* --- Entretenimiento y ocio (notas: para "ahora" se sugiere cómo consultar la web) --- */
+  { id:'trending_movies', keywords:['películas de moda','peliculas de moda ahora','peliculas de hoy','qué películas están de moda'], phrases:[], replies:[
+    'No puedo consultar las listas en tiempo real en esta demo local. Para ver películas de moda, consulta sitios como IMDb (Top Box Office), Rotten Tomatoes o Netflix/Filmaffinity. ¿Quieres un ejemplo de cómo obtener datos con una API?'
+  ], priority:12 },
+
+  { id:'recommend_series', keywords:['serie parecida a breaking bad','si me gusta breaking bad que ver'], phrases:[], replies:[
+    'Si te gustó Breaking Bad, prueba "Better Call Saul" (mismo universo), "Ozark" (drama y crimen), o "Narcos" (crimen realista).'
+  ], priority:15 },
+
+  { id:'marvel_release', keywords:['próxima película de marvel','cuando se estrena marvel','estreno marvel'], phrases:[], replies:[
+    'No tengo acceso a calendarios de estrenos en esta demo. Consulta fuentes oficiales (Marvel Studios) o sitios de cine como IMDb para fechas de estreno actualizadas.'
+  ], priority:12 },
+
+  { id:'steam_sales', keywords:['oferta steam','juegos en oferta steam','qué juegos están en oferta en steam'], phrases:[], replies:[
+    'No puedo listar ofertas en tiempo real sin acceso a la API de Steam. Puedes visitar la página de ofertas de Steam o usar la Web API de Steam para chequear precios automáticamente.'
+  ], priority:12 },
+
+  { id:'trailer_song', keywords:['qué canción suena en el tráiler','canción del tráiler'], phrases:[], replies:[
+    'Identificar una canción en un tráiler requiere escuchar el audio; no puedo analizar audio en esta demo. Puedes usar apps como Shazam o buscar en la descripción/foros del tráiler.'
+  ], priority:12 },
+
+  { id:'despacito_singer', keywords:['quién canta despacito','quien canta despacito'], phrases:[], replies:[
+    '“Despacito” es cantada por Luis Fonsi y Daddy Yankee (con participación en la versión remix de Justin Bieber).'
+  ], priority:18 },
+
+  { id:'reggaeton_genre', keywords:['qué género es el reggaetón','género reggaetón'], phrases:[], replies:[
+    'El reggaetón es un género musical urbano que mezcla reggae/dancehall con influencias latinas, hip-hop y electrónica; originado en Panamá y popularizado en Puerto Rico.'
+  ], priority:16 },
+
+  { id:'minecraft_like', keywords:['juegos parecidos a minecraft','similar a minecraft'], phrases:[], replies:[
+    'Juegos similares a Minecraft: "Terraria" (2D sandbox), "Roblox" (creación y multijugador), "Valheim" (supervivencia y construcción), "Eco", "Brickadia".'
+  ], priority:14 },
+
+  { id:'best_selling_game', keywords:['videojuego más vendido','juego más vendido de la historia'], phrases:[], replies:[
+    'El videojuego más vendido suele considerarse "Minecraft" (más de 200 millones de copias vendidas). Las cifras pueden cambiar; consulta fuentes oficiales.'
+  ], priority:14 },
+
+  { id:'where_watch_onepiece', keywords:['dónde ver one piece','donde ver one piece'], phrases:[], replies:[
+    'One Piece está disponible en plataformas de streaming según tu país (ej. Crunchyroll, Netflix en ciertas regiones). Revisa la disponibilidad local en el servicio de streaming de tu zona.'
+  ], priority:12 },
+
+  /* --- Tecnología y software (práctico: pasos y comandos) --- */
+  { id:'free_space_pc', keywords:['liberar espacio pc','liberar espacio en mi pc','cómo liberar espacio en mi pc'], phrases:[], replies:[
+    'Pasos rápidos: 1) Desinstala programas no usados 2) Borra archivos temporales (Disk Cleanup en Windows) 3) Mueve multimedia a disco externo o nube 4) Usa herramientas como WinDirStat para encontrar grandes archivos.'
+  ], priority:18 },
+
+  { id:'best_free_antivirus', keywords:['mejor antivirus gratuito','antivirus gratuito'], phrases:[], replies:[
+    'Algunas opciones reconocidas: Avast Free, AVG Free, Microsoft Defender (integrado en Windows). El mejor depende de tus necesidades; Microsoft Defender suele ser suficiente y bien integrado.'
+  ], priority:14 },
+
+  { id:'change_steam_name', keywords:['cambiar nombre steam','cómo cambiar nombre en steam'], phrases:[], replies:[
+    'En Steam: abre tu perfil → Editar perfil → Cambia "Nombre para mostrar". El nombre de cuenta (login) no es modificable fácilmente; el "display name" sí.'
+  ], priority:16 },
+
+  { id:'which_windows', keywords:['qué versión de windows tengo','qué windows tengo'], phrases:[], replies:[
+    'En Windows ve a Configuración → Sistema → Acerca de (o ejecuta `winver`). Esto muestra la edición y la versión del sistema operativo.'
+  ], priority:16 },
+
+  { id:'onedrive_backup', keywords:['copia de seguridad onedrive','hacer copia en onedrive','backup onedrive'], phrases:[], replies:[
+    'Para hacer copia en OneDrive: instala OneDrive, inicia sesión, mueve o sincroniza la carpeta que quieras; en Windows puedes activar "Carpeta de documentos/escritorio" para sincronizar automáticamente.'
+  ], priority:15 },
+
+  { id:'what_is_ssd', keywords:['qué es una ssd','que es una ssd'], phrases:[], replies:[
+    'SSD (Unidad de estado sólido) es un tipo de almacenamiento mucho más rápido que HDD, sin partes móviles, usando memoria flash. Mejora tiempos de arranque y carga de programas.'
+  ], priority:16 },
+
+  { id:'light_linux', keywords:['linux mas ligero','qué linux es más ligero','linux ligero'], phrases:[], replies:[
+    'Distros ligeras: Lubuntu, Xubuntu, Linux Lite, Puppy Linux o antiX. La elección depende de tu hardware y preferencias de escritorio.'
+  ], priority:14 },
+
+  { id:'install_game_other_drive', keywords:['instalar juego en otra unidad','instalar juego en otra unidad steam'], phrases:[], replies:[
+    'En Steam: Configuración → Descargas → Carpetas de la biblioteca Steam → Añadir carpeta en la unidad deseada. Luego instalar el juego en esa biblioteca.'
+  ], priority:16 },
+
+  { id:'pc_slow', keywords:['ordenador va lento','pc va lento','por qué mi ordenador va lento'], phrases:[], replies:[
+    'Posibles causas: disco lleno, demasiados procesos en segundo plano, malware, falta de RAM o temperatura alta (throttling). Ejecuta un escaneo antivirus, revisa uso de disco y procesos (Task Manager).'
+  ], priority:16 },
+
+  { id:'upload_to_cloud', keywords:['pasar archivos a la nube','subir archivos a la nube'], phrases:[], replies:[
+    'Opciones: OneDrive, Google Drive, Dropbox. Puedes usar la app del servicio para sincronizar carpetas o usar la web para subir archivos manualmente.'
+  ], priority:14 },
+
+  /* --- Tareas prácticas: plantillas y ejemplos --- */
+  { id:'write_email_formal', keywords:['escríbeme un correo formal','escribir correo formal'], phrases:[], replies:[
+    (t) => `Claro. Dame 2 datos: 1) destinatario/rol y 2) tema breve. Mientras tanto, un ejemplo genérico:\n\nEstimado/a [Nombre],\n\nMe dirijo a usted para... (contenido)\n\nAtentamente,\n[Tu nombre]`
+  ], priority:18 },
+
+  { id:'help_cv', keywords:['ayudame a hacer un currículum','hacer currículum','curriculum'], phrases:[], replies:[
+    'Puedo ayudarte a redactar tu CV. Dime: experiencia, formación, habilidades y puesto objetivo. Te doy formato (perfil, experiencia, educación, habilidades).'
+  ], priority:18 },
+
+  { id:'cover_letter', keywords:['carta de presentación','redacta carta de presentación'], phrases:[], replies:[
+    (t) => `Dime el puesto y empresa, y te redacto una carta. Ejemplo genérico:\n\nEstimado/a [Nombre],\nMe llamo [Tu nombre] y me postulo para [puesto] en [empresa]...`
+  ], priority:17 },
+
+  { id:'translate_en', keywords:['tradúceme al inglés','traducir al ingles','translate to english'], phrases:[], replies:[
+    (t) => `Pega el texto y lo traduzco al inglés. (Ej: "Hola, ¿cómo estás?" → "Hello, how are you?")`
+  ], priority:16 },
+
+  { id:'spellcheck', keywords:['corrige ortografia','corregir ortografía','corrige la ortografia'], phrases:[], replies:[
+    'Pega el texto y lo corrijo (ortografía y estilo), indicando cambios y explicaciones si quieres.'
+  ], priority:16 },
+
+  { id:'summarize_doc', keywords:['resumen documento','hazme un resumen','resume este documento'], phrases:[], replies:[
+    'Pega el texto o sube un fichero; te devuelvo un resumen breve, puntos clave o un índice de secciones.'
+  ], priority:16 },
+
+  { id:'convert_pdf', keywords:['convertir pdf','convierte a pdf','convertir a formato pdf'], phrases:[], replies:[
+    'En esta demo no puedo crear archivos en el sistema por seguridad del navegador; puedo generar un blob descargable con JavaScript para convertir texto a PDF usando una librería (ej. jsPDF). ¿Quieres un ejemplo?'
+  ], priority:14 },
+
+  { id:'todo_list', keywords:['crear lista de tareas','lista de tareas','hacer lista de tareas'], phrases:[], replies:[
+    'Dime las tareas y te devuelvo una lista ordenada con prioridades y estimación de tiempo.'
+  ], priority:14 },
+
+  { id:'weekly_schedule', keywords:['horario semanal','hacer un horario semanal','horario'], phrases:[], replies:[
+    'Dime tus franjas disponibles y tareas, y te creo un horario semanal con bloques y recordatorios sugeridos.'
+  ], priority:14 },
+
+  { id:'reminder', keywords:['recuérdame','recordatorio','recuérdame que'], phrases:['recuérdame que llame al médico mañana'], replies:[
+    'No puedo ejecutar notificaciones persistentes fuera del navegador. Puedo darte instrucciones para crear un recordatorio en Google Calendar o una notificación local (Web Notifications + Service Worker) y un ejemplo de código.'
+  ], priority:14 },
+
+  /* --- Comida y recetas --- */
+  { id:'tortilla_patatas', keywords:['tortilla de patatas','cómo se hace una tortilla de patatas','como se hace tortilla de patatas'], phrases:[], replies:[
+    'Receta básica de tortilla de patatas:\n1) Pela y corta 4 patatas en rodajas finas, sofríe en aceite a fuego medio hasta tiernas.\n2) Bate 5 huevos, mezcla con las patatas escurridas y cebolla (opcional).\n3) Cuaja en sartén a fuego medio-bajo, da la vuelta y termina de cocinar.\nTiempo total: ~30–40 min.'
+  ], priority:18 },
+
+  { id:'pizza_calories', keywords:['calorías pizza','cuántas calorías tiene una pizza','calorias pizza'], phrases:[], replies:[
+    'Depende del tamaño y ingredientes. Una porción (1/8 de pizza mediana) puede tener entre 200–350 kcal. Una pizza entera varía entre 1,600–3,000 kcal según ingredientes.'
+  ], priority:14 },
+
+  { id:'rice_chicken_recipe', keywords:['cocinar con arroz y pollo','qué cocinar con arroz y pollo'], phrases:[], replies:[
+    'Una idea rápida: arroz salteado con pollo: saltea trozos de pollo con ajo y verduras, añade arroz cocido, salsa de soja y huevo revuelto. Fácil y rápido.'
+  ], priority:14 },
+
+  { id:'boil_egg', keywords:['cuánto tiempo hervir un huevo','tiempo hervir huevo','hervir huevo tiempo'], phrases:[], replies:[
+    'Huevo pasado por agua: 4–6 min; huevo medio cocido: 7–9 min; huevo duro: 10–12 min (desde que el agua hierve). Ajusta por tamaño y altitud.'
+  ], priority:14 },
+
+  { id:'easy_vegetarian', keywords:['receta vegetariana fácil','receta vegetariana'], phrases:[], replies:[
+    'Recipe: Salteado de garbanzos y verduras: saltea cebolla, pimiento, añade garbanzos cocidos, tomate, especias (comino/pimentón). Sirve con arroz o pan.'
+  ], priority:14 },
+
+  { id:'italian_food', keywords:['comida típica italia','comida típica de italia'], phrases:[], replies:[
+    'Platos típicos: pasta (carbonara, bolognesa), pizza napolitana, risotto, lasaña y tiramisú como postre tradicional.'
+  ], priority:14 },
+
+  { id:'al_dente', keywords:['qué significa al dente','al dente significado'], phrases:[], replies:[
+    '“Al dente” significa que la pasta está cocida pero conserva firmeza al morderla; no blanda. Se logra cocinando el tiempo indicado y probando un trozo.'
+  ], priority:14 },
+
+  { id:'homemade_bread', keywords:['hacer pan casero','cómo se hace pan casero'], phrases:[], replies:[
+    'Receta básica: harina (500 g), agua tibia (300 ml), levadura (7 g seca), sal (10 g). Amasar, fermentar 1–2 h, dar forma, hornear 30–40 min a 220°C.'
+  ], priority:14 },
+
+  { id:'no_sugar_desserts', keywords:['postres sin azúcar','postres que no llevan azúcar'], phrases:[], replies:[
+    'Ideas: yogur natural con fruta, mousse de aguacate y cacao endulzado con stevia/eritritol, compota de manzana sin azúcar añadida.'
+  ], priority:12 },
+
+  { id:'egg_protein', keywords:['proteínas huevo','cuántas proteínas tiene un huevo','proteínas huevo'], phrases:[], replies:[
+    'Un huevo mediano tiene alrededor de 6–7 g de proteína (la clara contiene la mayor parte).'
+  ], priority:14 },
+
+  /* --- Viajes y lugares --- */
+  { id:'cheap_travel', keywords:['viajar con poco dinero','dónde puedo viajar con poco dinero'], phrases:[], replies:[
+    'Busca destinos con costo de vida bajo, vuelos con ofertas (low-cost), y viaja en temporada baja. Ejemplos: algunos países del sudeste asiático, Europa del Este o rutas locales en tu país.'
+  ], priority:12 },
+
+  { id:'best_time_japan', keywords:['mejor época japón','mejor época para ir a japón'], phrases:[], replies:[
+    'Primavera (marzo-mayo, temporada de sakura) y otoño (septiembre-noviembre) suelen ser las mejores épocas por clima y paisaje. Evita temporada de tifones (verano tardío).'
+  ], priority:14 },
+
+  { id:'paris_3days', keywords:['qué ver en parís en tres días','parís tres días'], phrases:[], replies:[
+    'Día 1: Torre Eiffel, Campos de Marte, paseo por Sena. Día 2: Louvre, Catedral de Notre-Dame, Barrio Latino. Día 3: Montmartre, Sacré-Cœur y compras en Le Marais.'
+  ], priority:14 },
+
+  { id:'flight_ny_cost', keywords:['vuelo nueva york cuanto cuesta','cuánto cuesta un vuelo a nueva york'], phrases:[], replies:[
+    'El precio varía según temporada y origen. Busca en comparadores (Skyscanner, Google Flights) para obtener precios actuales. Puedo dar un ejemplo de cómo consultar APIs si quieres.'
+  ], priority:12 },
+
+  { id:'us_visa', keywords:['necesito visado estados unidos','necesito visado para ir a estados unidos'], phrases:[], replies:[
+    'Depende de tu nacionalidad. Muchos países usan el Programa de Exención de Visado (ESTA). Consulta la web oficial del gobierno de EE. UU. para requisitos exactos.'
+  ], priority:16 },
+
+  { id:'colosseum', keywords:['dónde está el coliseo','donde esta el coliseo romano'], phrases:[], replies:[
+    'El Coliseo (Colosseo) está en Roma, Italia, en la zona del Foro Romano. Es uno de los principales monumentos turísticos de la ciudad.'
+  ], priority:14 },
+
+  { id:'canada_language', keywords:['idioma canadá','qué idioma se habla en canadá'], phrases:[], replies:[
+    'Canadá tiene dos idiomas oficiales: inglés y francés (francés principalmente en la provincia de Quebec).'
+  ], priority:14 },
+
+  { id:'euro_countries', keywords:['países usan euros','qué países usan euros'], phrases:[], replies:[
+    'El euro es la moneda oficial de los países de la eurozona (ej. España, Francia, Alemania, Italia, Países Bajos, etc.). Hay más de 19 países que usan el euro; consulta la lista actualizada en la UE.'
+  ], priority:14 },
+
+  { id:'madrid_barcelona_train', keywords:['tren madrid barcelona cuanto tarda','cuánto tarda tren madrid barcelona'], phrases:[], replies:[
+    'El AVE entre Madrid y Barcelona tarda aproximadamente 2h 30min a 3h, dependiendo del servicio. Consulta horarios de Renfe para tiempos exactos.'
+  ], priority:14 },
+
+  { id:'safe_travel_alone', keywords:['lugares seguros viajar solo','es seguro viajar solo'], phrases:[], replies:[
+    'Viajar solo es posible y seguro si eliges destinos con buena infraestructura turística y sigues precauciones: alojamiento con buenos reviews, evitar zonas aisladas de noche y llevar seguros de viaje.'
+  ], priority:12 },
+
+  /* --- Vida diaria y ayuda rápida --- */
+  { id:'wifi_not_work', keywords:['no funciona wifi','wifi no funciona','qué hacer si no funciona el wifi'], phrases:[], replies:[
+    'Prueba reiniciar el router, comprobar si otros dispositivos se conectan, olvidar y reconectar la red en el dispositivo, y probar con conexión por cable (si es posible).'
+  ], priority:16 },
+
+  { id:'restart_phone', keywords:['reiniciar movil','reiniciar mi móvil','cómo reinicio mi móvil'], phrases:[], replies:[
+    'Generalmente mantén pulsado el botón de encendido y selecciona "Reiniciar" o "Apagar". En algunos móviles hay combinaciones de botones (Power + Volumen). Dime modelo si necesitas pasos exactos.'
+  ], priority:14 },
+
+  { id:'clear_history', keywords:['borrar historial navegación','cómo borro historial','borrar historial'], phrases:[], replies:[
+    'En la mayoría de navegadores: Menú → Historial → Borrar datos de navegación (selecciona tiempo y tipos: historial, cookies, caché).'
+  ], priority:14 },
+
+  { id:'forgot_password', keywords:['olvidé mi contraseña','que hacer si olvidé mi contraseña','olvidé contraseña'], phrases:[], replies:[
+    'Usa la opción "Olvidé mi contraseña" en el servicio; normalmente enviarán un email para restablecer. Si no tienes acceso al email, contacta soporte del servicio.'
+  ], priority:14 },
+
+  { id:'airplane_mode', keywords:['qué significa modo avión','modo avión que es'], phrases:[], replies:[
+    'Modo avión desactiva las comunicaciones inalámbricas (celular, wifi y Bluetooth en algunos dispositivos), pensado para evitar interferencias en vuelos.'
+  ], priority:14 },
+
+  { id:'save_battery_android', keywords:['ahorrar batería android','cómo ahorrar batería en android'], phrases:[], replies:[
+    'Consejos: reducir brillo, desactivar GPS/wifi cuando no se usa, cerrar apps en segundo plano, activar modo ahorro de batería y revisar apps que consumen energía.'
+  ], priority:14 },
+
+  { id:'recover_photos', keywords:['recuperar fotos borradas','recuperar fotos'], phrases:[], replies:[
+    'Si se borraron recientemente, revisa la papelera de la app (Google Photos, iOS). Para borrados más antiguos, puedes intentar software de recuperación o copias de seguridad.'
+  ], priority:14 },
+
+  { id:'mic_not_work', keywords:['no se escucha micrófono','micrófono no funciona','por qué no se escucha el micrófono'], phrases:[], replies:[
+    'Verifica permisos en el navegador/app, comprueba el dispositivo por defecto en configuración de sonido, prueba con otro micrófono o reinicia el equipo.'
+  ], priority:14 },
+
+  { id:'connect_controller', keywords:['conectar mando al pc','conectar mando pc'], phrases:[], replies:[
+    'Conecta por USB o empareja por Bluetooth. Para mandos Xbox en Windows suele funcionar plug & play; para PS4/PS5 puede requerir software adicional o Steam Input.'
+  ], priority:14 },
+
+  { id:'which_android', keywords:['qué versión de android tengo','que version de android tengo'], phrases:[], replies:[
+    'En Android: Ajustes → Sistema → Acerca del teléfono → Información de software (o similar) para ver la versión de Android.'
+  ], priority:14 },
+
+  /* --- Educación y aprendizaje --- */
+  { id:'photosynthesis', keywords:['fotosíntesis','qué es la fotosíntesis'], phrases:[], replies:[
+    'La fotosíntesis es el proceso por el que las plantas (y algunas bacterias) convierten luz, CO₂ y agua en glucosa y oxígeno usando clorofila.'
+  ], priority:16 },
+
+  { id:'mass_vs_weight', keywords:['masa y peso diferencia','masa vs peso'], phrases:[], replies:[
+    'Masa es la cantidad de materia (kg); peso es la fuerza gravitatoria sobre esa masa (N). En la Tierra usamos kg para masa y N (o kgf) para peso; varía con la gravedad.'
+  ], priority:16 },
+
+  { id:'quadratic_equation', keywords:['ecuación cuadrática','cómo resolver ecuación cuadrática','resolver ecuación cuadrática'], phrases:[], replies:[
+    'Para ax²+bx+c=0 usa la fórmula: x = (-b ± √(b²-4ac)) / (2a). Si discriminante es negativo no hay soluciones reales.'
+  ], priority:16 },
+
+  { id:'quijote_summary', keywords:['resumen el quijote','resumen de el quijote'], phrases:[], replies:[
+    'El Quijote (Miguel de Cervantes) narra las aventuras de Alonso Quijano, quien, tras leer novelas de caballería, se convierte en Don Quijote y sale a reparar injusticias junto a Sancho Panza. Es una sátira de los libros de caballería y una reflexión sobre la realidad y la ficción.'
+  ], priority:14 },
+
+  { id:'french_revolution', keywords:['revolución francesa','qué fue la revolución francesa'], phrases:[], replies:[
+    'La Revolución Francesa (1789) fue un periodo de cambio político y social en Francia que derrocó la monarquía absoluta, introdujo principios de igualdad y ciudadanía, y llevó a profundas transformaciones europeas.'
+  ], priority:14 },
+
+  { id:'irregular_verb', keywords:['verbo irregular','qué es un verbo irregular'], phrases:[], replies:[
+    'Un verbo irregular no sigue la conjugación regular en pasado o participio (por ejemplo, "go" → "went", "gone").'
+  ], priority:14 },
+
+  { id:'types_of_energy', keywords:['tipos de energía','cuáles son los tipos de energía'], phrases:[], replies:[
+    'Ejemplos: energía cinética, potencial, térmica, química, eléctrica, nuclear, renovable (solar, eólica, hidráulica).'
+  ], priority:14 },
+
+  { id:'mitosis', keywords:['mitosis','qué es la mitosis'], phrases:[], replies:[
+    'La mitosis es el proceso de división celular que produce dos células hijas genéticamente idénticas a la célula madre; tiene fases: profase, metafase, anafase y telofase.'
+  ], priority:14 },
+
+  { id:'plural_english', keywords:['plural en inglés','cómo se forma el plural en inglés'], phrases:[], replies:[
+    'Regla general: añade -s (cat → cats). Si termina en s, x, ch, sh o o añade -es. Hay plurales irregulares (mouse → mice, child → children).'
+  ], priority:14 },
+
+  { id:'spain_flag', keywords:['significado bandera de españa','qué significa la bandera de españa'], phrases:[], replies:[
+    'La bandera de España tiene franjas rojas y amarilla; el escudo incluye los reinos históricos (Castilla, León, Aragón, Navarra, Granada) y las columnas de Hércules con el lema "Plus Ultra".'
+  ], priority:12 },
+
+  /* --- Conversaciones y curiosidad (chistes, historia, juegos) --- */
+  { id:'joke', keywords:['chiste','cuéntame un chiste','dime un chiste'], phrases:[], replies:[
+    '— ¿Por qué los programadores confunden Halloween y Navidad? Porque OCT 31 == DEC 25.',
+    '— ¿Qué le dijo un bit al otro? Nos vemos en el bus.'
+  ], priority:16 },
+
+  { id:'science_fact', keywords:['curiosidad científica','dime una curiosidad científica'], phrases:[], replies:[
+    'Curiosidad: el agua existen en tres estados (sólido, líquido, gas) y la densidad del agua es máxima a 4°C. Otra: las abejas pueden reconocer rostros.'
+  ], priority:12 },
+
+  { id:'fav_color', keywords:['color favorito','cual es tu color favorito'], phrases:[], replies:[
+    'No tengo gustos personales reales, pero si quieres puedo elegir uno por estilo: me gustan los tonos turquesa (#57e4b8).'
+  ], priority:8 },
+
+  { id:'sing_song', keywords:['puedes cantar una canción','canta una canción'], phrases:[], replies:[
+    'No puedo cantar con voz real (a menos que actives TTS). Puedo escribir la letra o entonar un párrafo con TTS si lo deseas.'
+  ], priority:8 },
+
+  { id:'short_story', keywords:['inventa una historia corta','inventa historia'], phrases:[], replies:[
+    () => `Érase una vez un pequeño robot llamado Aden que enseñaba a la gente a programar... (puedo extender la historia si quieres).`
+  ], priority:12 },
+
+  { id:'motivational', keywords:['frase motivadora','dame una frase motivadora'], phrases:[], replies:[
+    '“No es la carga lo que te rompe, sino la manera en que la llevas.” — Mantén pequeños pasos consistentes cada día.',
+    '“Haz hoy lo que otros no quieren, y vivirás mañana como otros no pueden.”'
+  ], priority:12 },
+
+  { id:'meaning_of_life', keywords:['sentido de la vida','cuál es el sentido de la vida'], phrases:[], replies:[
+    'Muchas respuestas existen: para algunos es buscar felicidad y conexión, para otros contribuir o aprender. Filosóficamente es una pregunta abierta: ¿qué te gustaría que fuera?'
+  ], priority:8 },
+
+  { id:'yoda', keywords:['imitar a yoda','puedes imitar a yoda'], phrases:[], replies:[
+    'Hablar como Yoda: "Hacerlo debes, si éxito buscas." (puedo transformar frases al estilo Yoda si quieres).'
+  ], priority:8 },
+
+  { id:'opinion_future', keywords:['futuro de la humanidad','qué opinas del futuro de la humanidad'], phrases:[], replies:[
+    'El futuro depende de decisiones sobre tecnología, clima y cooperación global. Hay desafíos y oportunidades; el progreso responsable es crítico.'
+  ], priority:10 },
+
+  { id:'quiz_game', keywords:['juguemos','juego preguntas y respuestas','juguemos a un juego'], phrases:[], replies:[
+    'Perfecto — puedo iniciar un juego de preguntas: te pregunto 5 preguntas de cultura general y contabilizo tu puntuación. ¿Quieres empezar?'
+  ], priority:10 },
+
+  /* Fallback */
+  { id:'default', keywords:[], phrases:[], replies:[
+    'Lo siento, no he entendido del todo. ¿Puedes reformular? Prueba con palabras clave: "hora", "quién fue", "receta", "guardar", "trucos PC", etc.',
+    'Si la pregunta requiere datos en tiempo real (precios, estrenos, ofertas), puedo mostrarte cómo consultarlos mediante fetch/APIs.'
+  ], priority:1 }
+];
+
+/* ---------- Utilidades y matching flexible ---------- */
+function uid(prefix='id'){ return `${prefix}_${Math.random().toString(36).slice(2,9)}`; }
+function now(){ return new Date().toISOString(); }
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify({chats,assistantLimit,ttsEnabled})); }
+function load(){ const raw = localStorage.getItem(STORAGE_KEY); if(!raw) return; try{ const obj=JSON.parse(raw); chats = obj.chats||[]; assistantLimit = obj.assistantLimit||DEFAULT_LIMIT; ttsEnabled = !!obj.ttsEnabled; } catch(e){console.warn(e);} }
+function normalize(s=''){ return String(s).toLowerCase().normalize('NFD').replace(/\p{Diacritic}/gu,'').replace(/[^\w\s]/g,' ').trim(); }
+function tokens(s=''){ return new Set(normalize(s).split(/\s+/).filter(Boolean)); }
+
+// detect best responder by scoring keywords and phrases
+function detectResponder(text){
+  if(!text) return RESPONDERS.find(r=>r.id==='default');
+  const norm = normalize(text);
+  const tset = tokens(text);
+  let best=null, bestScore=-Infinity;
+  for(const r of RESPONDERS){
+    let score = 0;
+    for(const k of (r.keywords||[])){
+      if(tset.has(normalize(k))) score += 4;
+      else if(norm.includes(normalize(k))) score += 2;
+    }
+    for(const p of (r.phrases||[])){
+      if(norm.includes(normalize(p))) score += 3;
+    }
+    score += (r.priority || 0);
+    if(score > bestScore){ bestScore = score; best = r; }
+  }
+  if(!best || bestScore <= 5) return RESPONDERS.find(r=>r.category==='fallback') || RESPONDERS.find(r=>r.id==='default') || RESPONDERS[RESPONDERS.length-1];
+  return best;
+}
+
+function chooseReply(responder, userText=''){
+  if(!responder) responder = RESPONDERS.find(r=>r.id==='default');
+  const opts = responder.replies || [];
+  const pick = opts[Math.floor(Math.random()*opts.length)];
+  if(typeof pick === 'function') return pick(userText);
+  return pick;
+}
+
+/* ---------- Chat logic (mensajes, render, typing simulation) ---------- */
+function createChat(name){ const c={id:uid('chat'),name:name||('Chat '+(chats.length+1)),messages:[],assistantCount:0,created:now()}; chats.unshift(c); activeChatId=c.id; pushUndo({type:'createChat',chat:c}); save(); renderChats(); renderActiveChat(); return c; }
+function deleteChat(id){ const idx=chats.findIndex(x=>x.id===id); if(idx===-1) return; const removed=chats.splice(idx,1)[0]; pushUndo({type:'deleteChat',chat:removed,idx}); if(activeChatId===id) activeChatId=chats.length?chats[0].id:null; save(); renderChats(); renderActiveChat(); }
+function renameChat(id,newName){ const c=chats.find(x=>x.id===id); if(!c) return; const old=c.name; c.name=newName; pushUndo({type:'renameChat',chatId:id,oldName:old,newName}); save(); renderChats(); renderActiveChat(); }
+function clearChat(id){ const c=chats.find(x=>x.id===id); if(!c) return; const snapshot=JSON.parse(JSON.stringify(c.messages)); c.messages=[]; c.assistantCount=0; pushUndo({type:'clearChat',chatId:id,snapshot}); save(); renderActiveChat(); }
+
+function addUserMessage(chatId,text){ const c=chats.find(x=>x.id===chatId); if(!c) return; const m={id:uid('m'),role:'user',text,ts:now()}; c.messages.push(m); pushUndo({type:'addMessage',chatId,msg:m}); save(); renderActiveChat(); }
+function addAssistantMessage(chatId,text){ const c=chats.find(x=>x.id===chatId); if(!c) return; const m={id:uid('m'),role:'assistant',text,ts:now()}; c.messages.push(m); c.assistantCount=(c.assistantCount||0)+1; pushUndo({type:'addMessage',chatId,msg:m}); save(); renderActiveChat(); }
+function deleteMessage(chatId,msgId){ const c=chats.find(x=>x.id===chatId); if(!c) return; const idx=c.messages.findIndex(m=>m.id===msgId); if(idx===-1) return; const removed=c.messages.splice(idx,1)[0]; if(removed.role==='assistant') c.assistantCount=Math.max(0,(c.assistantCount||0)-1); pushUndo({type:'deleteMessage',chatId,msg:removed,idx}); save(); renderActiveChat(); }
+
+/* Typing simulation for UX */
+async function simulateTyping(chatId,finalText){
+  const messagesArea = document.getElementById('messagesArea');
+  const bubble = document.createElement('div'); bubble.className='bubble assistant'; bubble.innerHTML = '<div class="muted">Aden está escribiendo</div><div style="height:14px"></div>'; messagesArea.appendChild(bubble); messagesArea.scrollTop = messagesArea.scrollHeight;
+  await sleep(400 + Math.random()*700);
+  bubble.innerHTML = '';
+  const textEl = document.createElement('div'); bubble.appendChild(textEl);
+  const chars = finalText.split('');
+  const base = Math.max(3, Math.min(18, 12 - Math.floor(chars.length/80)));
+  for(let i=0;i<chars.length;i++){
+    textEl.textContent += chars[i];
+    messagesArea.scrollTop = messagesArea.scrollHeight;
+    await sleep(base + Math.random()*10);
+  }
+  const meta = document.createElement('div'); meta.className='muted'; meta.style.fontSize='12px'; meta.style.marginTop='8px'; meta.textContent = new Date().toLocaleTimeString();
+  bubble.appendChild(meta);
+  // commit
+  const c = chats.find(x=>x.id===chatId); if(c){ c.messages.push({id:uid('m'),role:'assistant',text:finalText,ts:now()}); c.assistantCount=(c.assistantCount||0)+1; pushUndo({type:'addMessage',chatId,msg:c.messages[c.messages.length-1]}); save(); }
+  if(ttsEnabled && 'speechSynthesis' in window){ try{ const u = new SpeechSynthesisUtterance(finalText); u.lang='es-ES'; speechSynthesis.cancel(); speechSynthesis.speak(u);}catch(e){console.warn(e);} }
+}
+
+/* ---------- Helpers ---------- */
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function escapeHtml(s=''){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+/* ---------- Render UI ---------- */
+function renderChats(filter=''){
+  const el = document.getElementById('chatsList'); el.innerHTML=''; const f = normalize(filter);
+  for(const c of chats){
+    if(f && !normalize(c.name).includes(f) && !(c.messages||[]).some(m=>normalize(m.text).includes(f))) continue;
+    const item = document.createElement('div'); item.className='chat-item'; if(c.id===activeChatId) item.style.outline='2px solid rgba(87,228,184,0.08)';
+    item.addEventListener('click',()=>{ activeChatId=c.id; renderChats(); renderActiveChat(); });
+    const thumb = document.createElement('div'); thumb.style.width='42px'; thumb.style.height='42px'; thumb.style.borderRadius='8px'; thumb.style.background='linear-gradient(135deg,#c7f9e8,#9fd1ff)'; thumb.style.display='flex'; thumb.style.alignItems='center'; thumb.style.justifyContent='center'; thumb.style.fontWeight='700'; thumb.style.color='#022';
+    thumb.textContent = c.name.split(' ').map(s=>s[0]).slice(0,2).join('').toUpperCase();
+    const meta = document.createElement('div');
+    meta.innerHTML = `<div style="font-size:13px">${escapeHtml(c.name)}</div><div class="muted" style="font-size:12px">${c.messages.length} mensajes · ${c.assistantCount||0} respuestas</div>`;
+    const actions = document.createElement('div'); actions.style.marginLeft='auto';
+    const btnR = document.createElement('button'); btnR.className='btn'; btnR.textContent='✎'; btnR.onclick = (ev)=>{ ev.stopPropagation(); const n=prompt('Nuevo nombre', c.name); if(n) renameChat(c.id,n.trim()); };
+    const btnD = document.createElement('button'); btnD.className='btn'; btnD.textContent='🗑'; btnD.onclick = (ev)=>{ ev.stopPropagation(); if(confirm('Eliminar chat "'+c.name+'"?')) deleteChat(c.id); };
+    actions.appendChild(btnR); actions.appendChild(btnD);
+    item.appendChild(thumb); item.appendChild(meta); item.appendChild(actions);
+    el.appendChild(item);
+  }
+  document.getElementById('limitDisplay').textContent = assistantLimit;
+}
+
+function renderActiveChat(){
+  const area = document.getElementById('messagesArea'); area.innerHTML='';
+  const c = chats.find(x=>x.id===activeChatId);
+  const title = document.getElementById('panelTitle');
+  if(!c){ title.textContent='Selecciona o crea un chat'; document.getElementById('responsesLeft').textContent=''; document.getElementById('deleteChatBtn').disabled=true; return; }
+  title.textContent = c.name;
+  document.getElementById('deleteChatBtn').disabled=false;
+  const left = Math.max(0, assistantLimit - (c.assistantCount||0));
+  document.getElementById('responsesLeft').textContent = `${left} respuestas restantes (límite ${assistantLimit})`;
+  if(c.messages.length===0) area.innerHTML = '<div class="muted">Chat vacío. Escribe una pregunta para empezar — por ejemplo: "¿Qué hora es?"</div>';
+  for(const m of c.messages){
+    const b = document.createElement('div'); b.className='bubble '+(m.role==='user'?'user':'assistant'); b.setAttribute('data-id',m.id);
+    b.innerHTML = `<div>${escapeHtml(m.text).replace(/\n/g,'<br/>')}</div><div class="muted" style="margin-top:8px;font-size:12px">${new Date(m.ts).toLocaleString()} <button class="btn" data-del="${m.id}" style="margin-left:8px">🗑</button></div>`;
+    area.appendChild(b);
+  }
+  // attach delete handlers
+  area.querySelectorAll('button[data-del]').forEach(btn=> btn.addEventListener('click', (ev)=>{ const id=btn.getAttribute('data-del'); if(confirm('Borrar mensaje?')) deleteMessage(activeChatId,id); }));
+  area.scrollTop = area.scrollHeight;
+  renderSuggestions();
+}
+
+const SUGS = ['¿Qué hora es?','¿Qué día es hoy?','Escríbeme un correo formal','Cómo liberar espacio en mi PC','Receta tortilla de patatas','Cuéntame un chiste'];
+function renderSuggestions(){
+  const s = document.getElementById('suggestions'); s.innerHTML=''; for(const t of SUGS){ const chip=document.createElement('div'); chip.className='chip'; chip.textContent=t; chip.onclick=()=>{ document.getElementById('inputTxt').value=t; updateChar(); document.getElementById('inputTxt').focus(); }; s.appendChild(chip); }
+}
+
+/* ---------- Send flow: detectar intención y responder ---------- */
+async function handleSend(){
+  const input = document.getElementById('inputTxt'); const text = input.value.trim();
+  if(!text) return;
+  if(!activeChatId){ const c = createChat('Chat rápido'); activeChatId = c.id; }
+  addUserMessage(activeChatId, text);
+  input.value=''; updateChar();
+  const c = chats.find(x=>x.id===activeChatId);
+  if((c.assistantCount||0) >= assistantLimit){ await simulateTyping(activeChatId, 'He alcanzado el límite de respuestas en este chat. Crea uno nuevo o aumenta el límite.'); return; }
+  const responder = detectResponder(text);
+  const reply = chooseReply(responder, text);
+  // Typing simulation + commit
+  await simulateTyping(activeChatId, reply);
+}
+
+/* ---------- Undo / Redo (simple pero funcional) ---------- */
+function pushUndo(action){ undoStack.push(action); if(undoStack.length>200) undoStack.shift(); redoStack=[]; }
+function undo(){ const a=undoStack.pop(); if(!a) return alert('Nada que deshacer'); switch(a.type){ case 'addMessage': { const c=chats.find(x=>x.id===a.chatId); if(c){ const idx=c.messages.findIndex(m=>m.id===a.msg.id); if(idx!==-1) c.messages.splice(idx,1); if(a.msg.role==='assistant') c.assistantCount=Math.max(0,(c.assistantCount||0)-1); redoStack.push(a); save(); renderActiveChat(); } break;} case 'deleteMessage': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.messages.splice(a.idx,0,a.msg); if(a.msg.role==='assistant') c.assistantCount=(c.assistantCount||0)+1; redoStack.push(a); save(); renderActiveChat(); } break;} case 'createChat': { const idx=chats.findIndex(x=>x.id===a.chat.id); if(idx!==-1){ chats.splice(idx,1); redoStack.push(a); save(); renderChats(); renderActiveChat(); } break;} case 'deleteChat': { chats.splice(a.idx,0,a.chat); redoStack.push(a); save(); renderChats(); renderActiveChat(); break;} case 'renameChat': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.name=a.oldName; redoStack.push(a); save(); renderChats(); renderActiveChat(); } break;} case 'clearChat': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.messages=a.snapshot; c.assistantCount=c.messages.filter(m=>m.role==='assistant').length; redoStack.push(a); save(); renderActiveChat(); } break;} default: alert('Deshacer no soportado: '+a.type); } }
+function redo(){ const a=redoStack.pop(); if(!a) return alert('Nada que rehacer'); switch(a.type){ case 'addMessage': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.messages.push(a.msg); if(a.msg.role==='assistant') c.assistantCount=(c.assistantCount||0)+1; undoStack.push(a); save(); renderActiveChat(); } break;} case 'deleteMessage': { const c=chats.find(x=>x.id===a.chatId); if(c){ const idx=c.messages.findIndex(m=>m.id===a.msg.id); if(idx!==-1){ c.messages.splice(idx,1); if(a.msg.role==='assistant') c.assistantCount=Math.max(0,(c.assistantCount||0)-1); undoStack.push(a); save(); renderActiveChat(); } } break;} case 'createChat': { chats.unshift(a.chat); undoStack.push(a); save(); renderChats(); renderActiveChat(); break;} case 'deleteChat': { const idx=chats.findIndex(x=>x.id===a.chat.id); if(idx!==-1){ chats.splice(idx,1); undoStack.push(a); save(); renderChats(); renderActiveChat(); } break;} case 'renameChat': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.name=a.newName; undoStack.push(a); save(); renderChats(); renderActiveChat(); } break;} case 'clearChat': { const c=chats.find(x=>x.id===a.chatId); if(c){ c.messages=[]; c.assistantCount=0; undoStack.push(a); save(); renderActiveChat(); } break;} default: alert('Rehacer no soportado: '+a.type); } }
+
+/* ---------- Eventos UI ---------- */
+document.getElementById('newChatBtn').addEventListener('click', ()=> { const n=prompt('Nombre del nuevo chat','Conversación '+(chats.length+1)); createChat(n? n.trim() : undefined); });
+document.getElementById('exportAllBtn').addEventListener('click', ()=> { const blob=new Blob([JSON.stringify({chats,assistantLimit},null,2)],{type:'application/json'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='aden_chats.json'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); });
+document.getElementById('resetLocal').addEventListener('click', ()=> { if(confirm('Borrar todos los datos locales?')){ localStorage.removeItem(STORAGE_KEY); location.reload(); } });
+document.getElementById('searchChats').addEventListener('input', (e)=> renderChats(e.target.value));
+document.getElementById('sendBtn').addEventListener('click', handleSend);
+document.getElementById('inputTxt').addEventListener('keydown', (ev)=> { if(ev.key==='Enter' && !ev.shiftKey){ ev.preventDefault(); handleSend(); } });
+document.getElementById('inputTxt').addEventListener('input', updateChar);
+document.getElementById('decLimit').addEventListener('click', ()=> { assistantLimit=Math.max(1,assistantLimit-1); document.getElementById('limitDisplay').textContent = assistantLimit; save(); renderActiveChat(); });
+document.getElementById('incLimit').addEventListener('click', ()=> { assistantLimit=Math.min(200,assistantLimit+1); document.getElementById('limitDisplay').textContent = assistantLimit; save(); renderActiveChat(); });
+document.getElementById('clearChatBtn').addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); if(confirm('Vaciar historial?')) clearChat(activeChatId); });
+document.getElementById('renameChatBtn').addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); const c=chats.find(x=>x.id===activeChatId); const nn=prompt('Nuevo nombre', c.name); if(nn) renameChat(c.id, nn.trim()); });
+document.getElementById('deleteChatBtn').addEventListener('click', ()=> { if(!activeChatId) return alert('Selecciona un chat'); const c=chats.find(x=>x.id===activeChatId); if(confirm('Eliminar chat "'+c.name+'"?')) deleteChat(c.id); });
+document.getElementById('undoBtn').addEventListener('click', ()=> undo());
+document.getElementById('redoBtn').addEventListener('click', ()=> redo());
+document.getElementById('ttsToggle').addEventListener('click', ()=> { ttsEnabled = !ttsEnabled; document.getElementById('ttsToggle').classList.toggle('primary', ttsEnabled); document.getElementById('ttsToggle').textContent = ttsEnabled ? '🔊 ON' : '🔊'; save(); });
+
+/* ---------- UI helpers ---------- */
+function updateChar(){ document.getElementById('charCount').textContent = document.getElementById('inputTxt').value.length + ' caracteres'; }
+
+/* ---------- Init ---------- */
+(function init(){ load(); if(chats.length===0){ const c=createChat('Bienvenida'); c.messages.push({id:uid('m'),role:'assistant',text:'¡Hola! Soy Aden — tu asistente local. Pregúntame lo que quieras (ej.: "¿Qué hora es?", "Escríbeme un correo formal").',ts:now()}); c.assistantCount=1; save(); } if(!activeChatId && chats[0]) activeChatId=chats[0].id; renderChats(); renderActiveChat(); renderSuggestions(); document.getElementById('limitDisplay').textContent = assistantLimit; document.getElementById('ttsToggle').textContent = ttsEnabled ? '🔊 ON' : '🔊'; })();
+
+/* ---------- Exponer herramientas en consola (debug) ---------- */
+window.ADEN = { chats, createChat, deleteChat, renameChat, detectResponder, RESPONDERS };
+
+</script>
+</body>
+</html>
+
