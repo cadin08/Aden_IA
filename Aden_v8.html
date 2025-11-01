@@ -1,0 +1,4753 @@
+<!doctype html>
+<html lang="es">
+<head>
+<link rel="icon" type="image/png" href="https://images.vexels.com/media/users/3/189101/isolated/preview/693f7da0ef1625c6b281f1428a7ecdbb-fuegos-artificiales-de-2-anillos-degradado-verde.png?w=360">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Aden — Asistente Local Amistoso (v8 con FAQ)</title>
+<!-- PANTALLA DE ENTRADA / MENÚ INICIAL -->
+<div id="introScreen" class="intro-screen">
+  <div class="intro-content">
+    <div class="intro-ring"></div>
+    <div class="intro-title">Aden</div>
+    <div class="intro-sub">Pulsa cualquier tecla para acceder</div>
+  </div>
+</div>
+<!-- ===== Bloque: Micrófono Neón (incrustar tal cual) ===== -->
+<!-- Asegúrate de tener: <input id="inputAsistente"> o <textarea id="inputAsistente"> en la página -->
+
+<div id="micContainer" aria-hidden="false">
+  <div id="microfono" role="button" aria-pressed="false" title="Activar micrófono">
+    <span class="icon">🎙️</span>
+    <span class="glow"></span>
+    <span class="base-ring"></span>
+  </div>
+</div>
+
+<style>
+/* ==============================
+   ESTILO "LIQUID GLASS" PREMIUM
+   ============================== */
+
+/* contenedor pegado abajo-izquierda */
+#micContainer {
+  position: fixed;
+  bottom: 28px;
+  left: 28px;
+  z-index: 99999;
+  pointer-events: none;
+}
+
+/* botón principal */
+#microfono {
+  pointer-events: auto;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  position: relative;
+  cursor: pointer;
+  overflow: visible;
+  transform: translateZ(0);
+  backdrop-filter: blur(14px) saturate(180%);
+  background: rgba(20, 20, 20, 0.15);
+  border: 2px solid rgba(255, 140, 0, 0.6);
+  box-shadow:
+    0 0 16px rgba(255, 140, 0, 0.4),
+    inset 0 0 12px rgba(255, 140, 0, 0.15),
+    0 6px 24px rgba(0, 0, 0, 0.4);
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.3s ease,
+    border-color 0.3s ease,
+    background 0.3s ease;
+}
+
+/* efecto cristal / vidrio líquido */
+#microfono::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at 30% 30%,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0.02) 70%
+  );
+  mix-blend-mode: overlay;
+  pointer-events: none;
+}
+
+/* brillo externo naranja neón */
+#microfono::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255,140,0,0.55), transparent 70%);
+  filter: blur(14px);
+  z-index: -1;
+  opacity: 0.75;
+  transition: opacity 0.25s ease;
+}
+
+/* hover suave */
+#microfono:hover {
+  transform: scale(1.05) translateY(-2px);
+  border-color: rgba(255,165,0,0.8);
+  box-shadow:
+    0 0 26px rgba(255,140,0,0.55),
+    inset 0 0 16px rgba(255,140,0,0.25),
+    0 10px 30px rgba(0, 0, 0, 0.5);
+}
+#microfono:hover::after { opacity: 1; }
+
+/* ícono micrófono */
+#microfono .icon {
+  font-size: 26px;
+  filter: drop-shadow(0 0 6px rgba(255, 165, 0, 0.85));
+  transition: transform 0.2s ease;
+}
+
+/* efecto de anillo base sutil */
+#microfono .base-ring {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 110%;
+  height: 8px;
+  border-radius: 50%;
+  background: linear-gradient(
+    90deg,
+    rgba(255,165,0,0.2),
+    rgba(255,100,0,0.1)
+  );
+  filter: blur(6px);
+  z-index: -1;
+}
+
+/* animación cuando está activo */
+#microfono.active {
+  animation: micPulse 1.8s infinite ease-in-out;
+  border-color: rgba(255,165,0,0.9);
+}
+@keyframes micPulse {
+  0% { transform: scale(1); box-shadow: 0 0 18px rgba(255,140,0,0.4); }
+  50% { transform: scale(1.06); box-shadow: 0 0 36px rgba(255,140,0,0.6); }
+  100% { transform: scale(1); box-shadow: 0 0 18px rgba(255,140,0,0.4); }
+}
+
+/* anillo expansivo externo */
+.ring {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 99990;
+  mix-blend-mode: screen;
+  box-shadow: 0 0 40px rgba(255,140,0,0.8), 0 0 120px rgba(255,80,0,0.4);
+  opacity: .9;
+  transform: translate(-50%, -50%) scale(0);
+  animation: ringExpand 1s cubic-bezier(.2,.9,.2,1) forwards;
+}
+@keyframes ringExpand {
+  0% { transform: translate(-50%, -50%) scale(0); opacity: 0.9; }
+  70% { opacity: 0.3; }
+  100% { transform: translate(-50%, -50%) scale(8.2); opacity: 0; }
+}
+
+/* micro-eco breve */
+.micro-pulse {
+  position: absolute;
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%) scale(0.3);
+  pointer-events: none;
+  opacity: .8;
+  animation: pulseSmall 700ms ease-out forwards;
+}
+@keyframes pulseSmall {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: .8; }
+  100% { transform: translate(-50%, -50%) scale(1.4); opacity: 0; }
+}
+</style>
+
+
+
+<script>
+  (function () {
+    // Buscamos el input/textarea destino:
+    const preferId = 'inputAsistente';
+    let inputAsistente = document.getElementById(preferId) || document.querySelector('input[type="text"], textarea, [contenteditable="true"]');
+
+    // Si no hay input en la página avisamos por consola y terminamos (no bloqueamos la carga)
+    if (!inputAsistente) {
+      console.warn('MicNeon: no se encontró un campo de texto (id="inputAsistente" o first input/textarea). Añade uno para que funcione.');
+    }
+
+    const micBtn = document.getElementById('microfono');
+    let isRecording = false;
+    let finalTranscript = '';
+    let interimTranscript = '';
+
+    // Compatibilidad
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) {
+      console.warn('MicNeon: SpeechRecognition no soportado en este navegador. Usa Chrome o Edge.');
+      // seguir mostrando botón pero sin funcionalidad
+      micBtn.addEventListener('click', () => {
+        // breve pulso visual aunque no funcione
+        micBtn.classList.add('active');
+        setTimeout(() => micBtn.classList.remove('active'), 600);
+      });
+      return;
+    }
+
+    const recognition = new SpeechRecognition();
+    recognition.lang = 'es-ES';
+    recognition.interimResults = true;
+    recognition.continuous = true;
+
+    // Lanzador de aros (verde cuando inicia, rojo cuando para)
+    function lanzarAro(color) {
+      const rect = micBtn.getBoundingClientRect();
+      const ring = document.createElement('div');
+      ring.className = 'ring';
+      ring.style.left = (rect.left + rect.width/2) + 'px';
+      ring.style.top = (rect.top + rect.height/2) + 'px';
+      ring.style.width = rect.width + 'px';
+      ring.style.height = rect.height + 'px';
+      ring.style.border = `3px solid ${color}`;
+      ring.style.color = color;
+      document.body.appendChild(ring);
+      setTimeout(() => { ring.remove(); }, 1100);
+      // micro pulse inside button for fast feedback
+      const microPulse = document.createElement('span');
+      microPulse.className = 'micro-pulse';
+      microPulse.style.background = color;
+      micBtn.appendChild(microPulse);
+      setTimeout(()=> microPulse.remove(), 700);
+    }
+
+    // function para intentar "enviar" el mensaje
+    function sendMessageIfNeeded(text) {
+      if (!text || !text.trim()) return;
+      // 1) si el input está en un form, intentar submit
+      if (inputAsistente) {
+        let form = inputAsistente.closest && inputAsistente.closest('form');
+        if (form) {
+          // Trigger native submit
+          try {
+            form.requestSubmit ? form.requestSubmit() : form.submit();
+            return;
+          } catch (e) { /* fallthrough */ }
+        }
+      }
+
+      // 2) buscar un botón de submit en la página (priorizando el del mismo contenedor)
+      try {
+        let btn;
+        if (inputAsistente) {
+          const root = inputAsistente.closest('form') || document;
+          btn = root.querySelector('button[type="submit"], input[type="submit"], button[data-send], [data-send]');
+        }
+        if (!btn) {
+          btn = document.querySelector('button[type="submit"], input[type="submit"], button[data-send], [data-send]');
+        }
+        if (btn) { btn.click(); return; }
+      } catch (e) { /* ignore */ }
+
+      // 3) Simular Enter keydown sobre el input (puede que la app escuche keydown)
+      try {
+        if (inputAsistente) {
+          const ev = new KeyboardEvent('keydown', { bubbles: true, cancelable: true, key: 'Enter', code: 'Enter', which: 13, keyCode: 13 });
+          inputAsistente.dispatchEvent(ev);
+        }
+      } catch (e) { /* ignore */ }
+    }
+
+    // ONRESULT: combinamos final + interim y escribimos en el input
+    recognition.onresult = (evt) => {
+      interimTranscript = '';
+      for (let i = evt.resultIndex; i < evt.results.length; ++i) {
+        const res = evt.results[i];
+        if (res.isFinal) finalTranscript += res[0].transcript;
+        else interimTranscript += res[0].transcript;
+      }
+      const combined = (finalTranscript + ' ' + interimTranscript).trim();
+      if (inputAsistente) {
+        // si es contenteditable
+        if (inputAsistente.isContentEditable) inputAsistente.innerText = combined;
+        else inputAsistente.value = combined;
+      }
+    };
+
+    recognition.onstart = () => {
+      isRecording = true;
+      micBtn.classList.add('active');
+      micBtn.setAttribute('aria-pressed', 'true');
+      lanzarAro('#32e08a'); // verde
+    };
+
+    recognition.onend = () => {
+      // Si se paró grabando (no por fallo) enviamos el texto final
+      if (isRecording) {
+        isRecording = false;
+        micBtn.classList.remove('active');
+        micBtn.setAttribute('aria-pressed', 'false');
+        lanzarAro('#ff4f6d'); // rojo
+        // mandar el mensaje reconocido tras detener
+        const textoFinal = finalTranscript.trim();
+        // dar pequeño delay para que el UI actualice el input antes de enviar
+        setTimeout(() => sendMessageIfNeeded(textoFinal), 80);
+        // reset transcripts para la próxima sesión
+        finalTranscript = '';
+        interimTranscript = '';
+      }
+    };
+
+    recognition.onerror = (e) => {
+      console.error('MicNeon - recognition error:', e);
+      // desmontar estado visual
+      isRecording = false;
+      micBtn.classList.remove('active');
+      micBtn.setAttribute('aria-pressed', 'false');
+      // mostrar aro rojo de fallo
+      lanzarAro('#ff4f6d');
+      // no llamar a send en error
+      finalTranscript = '';
+      interimTranscript = '';
+    };
+
+    // Toggle via botón
+    micBtn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      if (!isRecording) {
+        finalTranscript = '';
+        interimTranscript = '';
+        try {
+          recognition.start();
+        } catch (err) {
+          // algunos navegadores lanzan si start se llama dos veces rápido
+          console.warn('MicNeon: start error', err);
+        }
+      } else {
+        // parar y onend se encargará de enviar
+        try { recognition.stop(); } catch (e) { console.warn(e); }
+      }
+    });
+
+    // si el usuario hace foco manual en el input y pulsa Enter, queremos que no se rompa nada
+    if (inputAsistente) {
+      inputAsistente.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          // si el usuario envía manualmente, reset transcripts
+          finalTranscript = '';
+          interimTranscript = '';
+        }
+      });
+    }
+  })();
+</script>
+
+<!-- ======= BLOQUE CENTRAL DE NOTAS ======= -->
+<div id="notesPopup">
+  <div id="notesHeader">
+    <h3>📝 Notas</h3>
+    <button id="closeNotes">✖</button>
+  </div>
+  <textarea id="notesArea" placeholder="Escribe tus notas aquí..."></textarea>
+</div>
+
+<!-- Botón flotante para abrir -->
+<button id="openNotes">🗒️</button>
+
+<style>
+  /* Botón flotante de apertura (lateral izquierdo centrado) */
+  #openNotes {
+    position: fixed;
+    top: 50%;
+    left: 20px;
+    transform: translateY(-50%);
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    border: none;
+    font-size: 24px;
+    color: #00ffd0;
+    background: rgba(0, 255, 170, 0.15);
+    box-shadow: 0 0 15px #00ffd0, inset 0 0 15px #00b3ff;
+    backdrop-filter: blur(10px);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 10000;
+  }
+  #openNotes:hover {
+    transform: translateY(-50%) scale(1.1);
+    box-shadow: 0 0 25px #00ffea, inset 0 0 20px #00ccff;
+  }
+
+  /* Ventana central */
+  #notesPopup {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.8);
+    width: 420px;
+    height: 400px;
+    background: rgba(0, 40, 50, 0.3);
+    backdrop-filter: blur(15px) saturate(160%);
+    border: 2px solid rgba(0, 255, 200, 0.25);
+    box-shadow: 0 0 25px rgba(0, 255, 255, 0.2);
+    border-radius: 18px;
+    color: white;
+    font-family: "Segoe UI", sans-serif;
+    opacity: 0;
+    transition: all 0.35s ease;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    pointer-events: none;
+  }
+
+  /* Cuando está visible */
+  #notesPopup.active {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+    pointer-events: auto;
+  }
+
+  /* Cabecera del menú */
+  #notesHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    background: rgba(0, 255, 170, 0.1);
+    border-bottom: 1px solid rgba(0, 255, 170, 0.2);
+    border-top-left-radius: 18px;
+    border-top-right-radius: 18px;
+  }
+
+  #notesHeader h3 {
+    margin: 0;
+    font-size: 18px;
+    color: #00ffd5;
+    text-shadow: 0 0 8px #00ffee;
+  }
+
+  #notesHeader button {
+    background: none;
+    border: none;
+    color: #00ffd5;
+    font-size: 18px;
+    cursor: pointer;
+    transition: 0.3s;
+  }
+
+  #notesHeader button:hover {
+    color: #ff4d6d;
+    transform: scale(1.2);
+  }
+
+  /* Área de notas */
+  #notesArea {
+    flex: 1;
+    background: transparent;
+    border: none;
+    resize: none;
+    padding: 15px;
+    font-size: 16px;
+    color: #cafff4;
+    outline: none;
+    font-family: "Consolas", monospace;
+  }
+
+  #notesArea::placeholder {
+    color: rgba(200, 255, 255, 0.5);
+  }
+
+  /* Scroll personalizado */
+  #notesArea::-webkit-scrollbar {
+    width: 8px;
+  }
+  #notesArea::-webkit-scrollbar-thumb {
+    background: linear-gradient(#00ffc3, #0099ff);
+    border-radius: 8px;
+  }
+
+  /* Efecto de entrada/salida */
+  #notesPopup.active {
+    animation: popIn 0.4s ease forwards;
+  }
+
+  @keyframes popIn {
+    from {
+      opacity: 0;
+      transform: translate(-50%, -50%) scale(0.8);
+    }
+    to {
+      opacity: 1;
+      transform: translate(-50%, -50%) scale(1);
+    }
+  }
+</style>
+
+<script>
+  const openNotes = document.getElementById("openNotes");
+  const closeNotes = document.getElementById("closeNotes");
+  const notesPopup = document.getElementById("notesPopup");
+  const notesArea = document.getElementById("notesArea");
+
+  // Mostrar / ocultar menú
+  openNotes.addEventListener("click", () => notesPopup.classList.add("active"));
+  closeNotes.addEventListener("click", () => notesPopup.classList.remove("active"));
+
+  // Guardar notas en localStorage automáticamente
+  notesArea.value = localStorage.getItem("userNotes") || "";
+  notesArea.addEventListener("input", () => {
+    localStorage.setItem("userNotes", notesArea.value);
+  });
+</script>
+
+<style>
+/* =====================================
+   MENÚ DE ENTRADA — PANTALLA INICIAL
+   ===================================== */
+
+.intro-screen {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(180deg, var(--bg-0), var(--bg-1));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 3000;
+  animation: fadeInIntro 1.2s ease both;
+}
+
+@keyframes fadeInIntro {
+  from { opacity: 0; transform: scale(1.02); }
+  to { opacity: 1; transform: none; }
+}
+
+.intro-content {
+  position: relative;
+  text-align: center;
+  color: #e9f4ff;
+  font-family: "Inter", sans-serif;
+}
+
+.intro-ring {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 180px;
+  height: 180px;
+  border-radius: 50%;
+  border: 3px solid var(--accent-1);
+  transform: translate(-50%, -50%);
+  opacity: 0.6;
+  animation: ringPulse 3s ease-in-out infinite;
+  filter: drop-shadow(0 0 12px rgba(87,228,184,0.3));
+}
+
+@keyframes ringPulse {
+  0%,100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+  50% { transform: translate(-50%, -50%) scale(1.15); opacity: 0.9; }
+}
+
+.intro-title {
+  font-size: 56px;
+  font-weight: 800;
+  letter-spacing: 2px;
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  text-shadow: 0 4px 16px rgba(87,228,184,0.2);
+  z-index: 2;
+  position: relative;
+}
+
+.intro-sub {
+  margin-top: 22px;
+  font-size: 16px;
+  color: var(--muted);
+  letter-spacing: 0.5px;
+  opacity: 0.7;
+  animation: blinkText 2s ease-in-out infinite;
+}
+
+@keyframes blinkText {
+  0%,100% { opacity: 0.4; }
+  50% { opacity: 1; }
+}
+
+/* Animación de salida */
+.fade-out {
+  animation: fadeOutIntro 1s ease forwards;
+}
+@keyframes fadeOutIntro {
+  from { opacity: 1; }
+  to { opacity: 0; visibility: hidden; }
+}
+</style>
+
+<style>
+	
+:root {
+  /* Paleta actualizada para efecto glass oscuro suave */
+  --bg-0: #0b1118;
+  --bg-1: #101923;
+  --glass-bg: rgba(255, 255, 255, 0.06);
+  --glass-border: rgba(255, 255, 255, 0.15);
+  --glass-highlight: rgba(255, 255, 255, 0.25);
+  --muted: #b8c6d8;
+  --accent-1: #66ffd1;
+  --accent-2: #7ab8ff;
+  --danger: #ff6b6b;
+  --radius: 16px;
+  --shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
+  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto;
+  color-scheme: dark;
+}
+
+/* Aplicación del efecto cristal líquido */
+.sidebar,
+.panel,
+#faqDrawer {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(22px) saturate(180%);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  border-radius: var(--radius);
+  transition: all 0.4s ease;
+}
+
+/* Sombra difusa y reflejos al pasar */
+.sidebar:hover,
+.panel:hover,
+#faqDrawer:hover {
+  box-shadow: 0 16px 50px rgba(0, 0, 0, 0.55), inset 0 1px 1px var(--glass-highlight);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Botones con relieve translúcido */
+.btn {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: var(--muted);
+  backdrop-filter: blur(10px);
+  transition: all 0.25s ease;
+}
+.btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.btn.primary {
+  background: linear-gradient(90deg, var(--accent-1), var(--accent-2));
+  color: #052a26;
+  font-weight: 700;
+  border: none;
+  box-shadow: 0 0 18px rgba(111,183,255,0.35);
+}
+.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 0 24px rgba(111,183,255,0.45);
+}
+
+/* Burbuja tipo cristal */
+.bubble.user,
+.bubble.assistant {
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(18px);
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.bubble.user:hover,
+.bubble.assistant:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 30px rgba(0, 0, 0, 0.4);
+}
+
+/* Input y textarea con vidrio difuminado */
+input, textarea {
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(12px);
+  color: var(--muted);
+}
+input:focus, textarea:focus {
+  border-color: var(--accent-2);
+  background: rgba(255,255,255,0.07);
+}
+
+/* FAQ Drawer con más transparencia */
+#faqDrawer {
+  background: rgba(16, 26, 36, 0.55);
+  border: 1px solid rgba(255,255,255,0.15);
+  backdrop-filter: blur(20px) saturate(180%);
+}
+
+/* Fondo translúcido del botón flotante */
+#faqToggle {
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  box-shadow: 0 12px 30px rgba(87,228,184,0.3);
+}
+#faqToggle:hover {
+  transform: scale(1.08);
+  box-shadow: 0 18px 40px rgba(111,183,255,0.45);
+}
+
+/* Intro screen glass */
+.intro-screen {
+  background: radial-gradient(ellipse at top, rgba(16,26,36,0.9), rgba(8,12,18,0.98));
+  backdrop-filter: blur(14px);
+}
+
+/* Ajuste general para textos y contraste */
+.muted {
+  color: rgba(200, 220, 240, 0.75);
+}
+
+/* Pequeño brillo ambiental */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(87,228,184,0.08), transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(111,183,255,0.06), transparent 60%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* =========================================================================
+   Aden v8 con Panel FAQ desplegable
+   - Mantiene la estética anterior (oscuro, limpio).
+   - Añade drawer/floating button en esquina con todas las preguntas.
+   ========================================================================= */
+
+:root{
+  --bg-0:#07121a;
+  --bg-1:#0e1a27;
+  --panel:#11202b;
+  --glass: rgba(255,255,255,0.03);
+  --muted:#9fb0c6;
+  --accent-1:#57e4b8;
+  --accent-2:#6fb7ff;
+  --danger:#ff6b6b;
+  --card:#0b1720;
+  --radius:14px;
+  --shadow: 0 14px 36px rgba(2,8,23,0.6);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  color-scheme: dark;
+}
+
+/* Base layout (copiado / adaptado de la versión previa) */
+html,body{height:100%;margin:0;background:linear-gradient(180deg,var(--bg-0),var(--bg-1));color:#e9f4ff;-webkit-font-smoothing:antialiased;}
+.wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:340px 1fr;gap:20px;min-height:760px}
+
+/* Sidebar */
+.sidebar{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column;overflow:hidden}
+.brand{display:flex;gap:12px;align-items:center}
+.logo{width:56px;height:56px;border-radius:12px;background:linear-gradient(135deg,var(--accent-1),var(--accent-2));display:flex;align-items:center;justify-content:center;font-weight:900;color:#022b2a;font-size:18px;box-shadow:0 6px 18px rgba(87,228,184,0.06)}
+.brand h1{margin:0;font-size:16px}
+.brand p{margin:0;color:var(--muted);font-size:12px}
+.controls{display:flex;gap:8px;margin-top:12px}
+.btn{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px 10px;border-radius:10px;color:var(--muted);cursor:pointer;font-size:13px}
+.btn.primary{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));border:none;color:#052a26;font-weight:700}
+.btn.ghost{background:transparent;border:1px dashed rgba(255,255,255,0.03)}
+.btn.small{padding:6px 8px;font-size:12px}
+
+/* Search / chats list */
+.search{display:flex;gap:8px;margin-top:12px;align-items:center}
+.search input{flex:1;padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted)}
+.meta-pill{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,0.02);font-size:12px;color:var(--muted)}
+.chats{margin-top:12px;flex:1;overflow:auto;display:flex;flex-direction:column;gap:10px;padding-right:6px}
+.chat-item{display:flex;align-items:center;gap:10px;padding:10px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);cursor:pointer;border:1px solid transparent;transition:all .18s}
+.chat-item:hover{transform:translateY(-4px);box-shadow:0 10px 28px rgba(2,6,23,0.35)}
+.chat-item.active{outline:2px solid rgba(87,228,184,0.08)}
+.chat-thumb{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#c7f9e8,#9fd1ff);display:flex;align-items:center;justify-content:center;font-weight:700;color:#022}
+.chat-meta h4{margin:0;font-size:13px}
+.chat-meta p{margin:0;font-size:12px;color:var(--muted)}
+
+/* Panel principal */
+.panel{background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(255,255,255,0.02));padding:18px;border-radius:var(--radius);box-shadow:var(--shadow);display:flex;flex-direction:column}
+.panel-header{display:flex;align-items:center;justify-content:space-between}
+.panel-header .left{display:flex;gap:12px;align-items:center}
+.panel-header h2{margin:0;font-size:18px}
+.panel-actions{display:flex;gap:8px}
+.messages{flex:1;margin-top:14px;padding:16px;border-radius:12px;background:linear-gradient(180deg, rgba(255,255,255,0.01), transparent);overflow:auto;border:1px dashed rgba(255,255,255,0.02);display:flex;flex-direction:column;gap:12px}
+.bubble{max-width:78%;padding:12px 14px;border-radius:14px;line-height:1.45;box-shadow:0 8px 22px rgba(2,6,23,0.45)}
+.bubble.user{align-self:flex-end;background:linear-gradient(180deg,#071425,#061422);border:1px solid rgba(255,255,255,0.02)}
+.bubble.assistant{align-self:flex-start;background:linear-gradient(180deg,#022b2a,#062c3c);border:1px solid rgba(255,255,255,0.02)}
+.bubble .meta{font-size:11px;color:var(--muted);margin-top:8px;display:flex;justify-content:space-between}
+.compose{display:flex;gap:12px;margin-top:12px;align-items:flex-end}
+textarea{flex:1;padding:14px;border-radius:12px;background:transparent;border:1px solid rgba(255,255,255,0.03);color:var(--muted);min-height:68px;resize:none}
+.compose .right{display:flex;flex-direction:column;gap:8px}
+.tiny{display:flex;gap:8px;align-items:center;margin-top:8px;font-size:12px;color:var(--muted)}
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{padding:8px 10px;border-radius:999px;background:rgba(255,255,255,0.02);cursor:pointer;border:1px solid rgba(255,255,255,0.02);font-size:13px}
+.chip:hover{transform:translateY(-3px)}
+.typing{display:inline-block;vertical-align:middle;width:56px;height:14px}
+.typing span{display:inline-block;width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,0.12);margin-right:6px;animation:dots 1.2s infinite}
+.typing span:nth-child(2){animation-delay:.12s}
+.typing span:nth-child(3){animation-delay:.24s}
+@keyframes dots{0%{transform:translateY(0);opacity:.4}50%{transform:translateY(-6px);opacity:1}100%{transform:translateY(0);opacity:.4}}
+@media (max-width:980px){.wrap{grid-template-columns:1fr;padding:12px}.sidebar{order:2}}
+.muted{color:var(--muted)}
+.danger{color:var(--danger)}
+.fade-in{animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.settings-panel{margin-top:12px;padding:12px;border-radius:12px;background:rgba(255,255,255,0.012);border:1px solid rgba(255,255,255,0.02)}
+.toggle{display:flex;align-items:center;gap:10px}
+.kbd{background:rgba(255,255,255,0.03);padding:6px 8px;border-radius:6px;font-size:12px}
+.footer-bar{display:flex;align-items:center;justify-content:space-between;padding:12px;border-radius:10px;margin-top:12px;background:rgba(255,255,255,0.01);border:1px solid rgba(255,255,255,0.02)}
+.small{font-size:12px;color:var(--muted)}
+.accent{color:var(--accent-1)}
+.search-highlight{background:linear-gradient(90deg, rgba(111,183,255,0.12), rgba(87,228,184,0.06));padding:4px 8px;border-radius:8px}
+.voice-row{display:flex;gap:8px;align-items:center;margin-top:8px}
+.voice-btn{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);cursor:pointer}
+.voice-btn.active{background:linear-gradient(90deg,var(--accent-1),var(--accent-2));color:#052a26}
+[tabindex="0"]:focus{outline:2px solid rgba(111,183,255,0.08)}
+.hr{border-top:1px dashed rgba(255,255,255,0.02);margin:10px 0}
+.center{display:flex;align-items:center;justify-content:center}
+@media (min-width:1400px){.wrap{max-width:1400px}}
+
+/* =========================
+   FAQ Drawer & Floating Button
+   ========================= */
+
+/* floating button bottom-right */
+#faqToggle {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width:56px;
+  height:56px;
+  border-radius:999px;
+  display:flex;align-items:center;justify-content:center;
+  background:linear-gradient(135deg,var(--accent-1),var(--accent-2));
+  color:#052a26;font-weight:800;border:none;box-shadow:0 12px 30px rgba(2,8,23,0.6);
+  cursor:pointer;z-index:1200;
+}
+
+/* drawer */
+#faqDrawer {
+  position: fixed;
+  right: 18px;
+  bottom: 86px; /* above the button */
+  width: 380px;
+  max-height: 70vh;
+  background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:12px;
+  box-shadow: 0 20px 60px rgba(2,8,23,0.6);
+  z-index:1200;
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  transform: translateY(12px) scale(0.98);
+  opacity:0;
+  transition: all .18s ease;
+  pointer-events:none;
+  border:1px solid rgba(255,255,255,0.02);
+}
+
+/* when open */
+#faqDrawer.open { transform: none; opacity:1; pointer-events:auto; }
+
+/* header inside drawer */
+#faqDrawer .header { padding:12px 14px; border-bottom:1px dashed rgba(255,255,255,0.02); display:flex;justify-content:space-between;align-items:center;}
+#faqDrawer .header .title{font-weight:700}
+#faqDrawer .header .muted{font-size:12px;color:var(--muted)}
+
+/* search inside drawer */
+#faqSearch { width: calc(100% - 28px); margin:8px 14px; padding:10px;border-radius:10px;background:transparent;border:1px solid rgba(255,255,255,0.03); color:var(--muted) }
+
+/* list */
+#faqList { overflow:auto; padding:10px 8px; display:flex; flex-direction:column; gap:8px; }
+
+/* each faq item */
+.faq-item { padding:10px; border-radius:10px; background: rgba(255,255,255,0.01); display:flex; flex-direction:column; gap:6px; border:1px solid rgba(255,255,255,0.02); }
+.faq-item .q { font-weight:700; font-size:13px; }
+.faq-item .a { font-size:13px; color:var(--muted); }
+.faq-item .controls { display:flex; gap:8px; margin-top:6px; }
+.faq-item .controls button { padding:6px 8px; border-radius:8px; border:1px solid rgba(255,255,255,0.03); background:transparent; color:var(--muted); cursor:pointer; font-size:13px }
+.faq-empty { padding:14px; text-align:center; color:var(--muted) }
+
+/* small footer inside drawer */
+#faqDrawer .footer { padding:10px 12px; border-top:1px dashed rgba(255,255,255,0.02); display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--muted) }
+
+/* =====================================
+   MEJORAS VISUALES + ANIMACIÓN DE MENSAJES
+   ===================================== */
+
+/* Animaciones suaves al aparecer mensajes */
+@keyframes bubbleInUser {
+  0% { transform: translateY(12px) scale(0.98); opacity: 0; }
+  100% { transform: translateY(0); scale(1); opacity: 1; }
+}
+
+@keyframes bubbleInAssistant {
+  0% { transform: translateY(12px) scale(0.96) rotate(-1deg); opacity: 0; }
+  100% { transform: translateY(0); scale(1); rotate(0deg); opacity: 1; }
+}
+
+/* Efecto de "entrada" suave */
+.bubble.user {
+  animation: bubbleInUser 0.25s ease-out both;
+  background: linear-gradient(180deg, #071425, #061422);
+  border: 1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 6px 20px rgba(87,228,184,0.08);
+  transition: transform .15s ease;
+}
+.bubble.user:hover {
+  transform: translateY(-2px) scale(1.02);
+}
+
+/* Aden: animación con rebote leve y color vivo */
+.bubble.assistant {
+  animation: bubbleInAssistant 0.35s cubic-bezier(0.18, 0.89, 0.32, 1.28) both;
+  background: linear-gradient(180deg, #022b2a, #083345);
+  border: 1px solid rgba(87,228,184,0.08);
+  box-shadow: 0 8px 24px rgba(87,228,184,0.15);
+  transition: transform .18s ease, box-shadow .18s ease;
+}
+.bubble.assistant:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 10px 28px rgba(111,183,255,0.2);
+}
+
+/* Sombra más realista al pasar el ratón */
+.chat-item:hover {
+  transform: translateY(-4px) scale(1.02);
+  box-shadow: 0 10px 28px rgba(2,6,23,0.45);
+}
+
+/* Transiciones suaves al abrir FAQ y botones */
+#faqDrawer,
+#faqToggle,
+.btn {
+  transition: all .22s ease-in-out;
+}
+
+/* Pequeña mejora visual general */
+textarea, input {
+  transition: border-color .2s ease, background-color .2s ease;
+}
+textarea:focus, input:focus {
+  border-color: rgba(111,183,255,0.25);
+  background: rgba(255,255,255,0.02);
+}
+
+/* Animación FAQ al abrir */
+#faqDrawer.open {
+  transform: translateY(0) scale(1);
+  opacity: 1;
+  animation: fadeIn .25s ease both;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: none; }
+}
+
+
+/* =====================================
+   EFECTO DE ESCRITURA "TYPING" EN MENSAJES
+   ===================================== */
+
+.typewriter {
+  display: inline-block;
+  overflow: hidden;
+  white-space: nowrap;
+  border-right: 2px solid rgba(255,255,255,0.15);
+  animation: typing 2.4s steps(40, end), blink 0.8s step-end infinite;
+}
+
+/* Velocidad de escritura (ajustable con duración del typing) */
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* Parpadeo del cursor */
+@keyframes blink {
+  from, to { border-color: transparent; }
+  50% { border-color: rgba(255,255,255,0.25); }
+}
+
+/* Versión más lenta para Aden */
+.typewriter.assistant {
+  animation: typing 3.4s steps(50, end), blink 0.8s step-end infinite;
+}
+
+</style>
+</head>
+
+<script>
+document.addEventListener("keydown", hideIntro);
+document.addEventListener("click", hideIntro);
+
+function hideIntro() {
+  const intro = document.getElementById("introScreen");
+  if (!intro) return;
+  intro.classList.add("fade-out");
+  setTimeout(() => intro.remove(), 1000);
+  document.removeEventListener("keydown", hideIntro);
+  document.removeEventListener("click", hideIntro);
+}
+</script>
+
+<!-- ===== Sistema de Cuentas (local) ===== -->
+<!-- Requiere: ningún recurso externo. Todo localStorage. -->
+<div id="acctWidget">
+  <button id="acctBtn" aria-haspopup="true" aria-expanded="false" title="Cuentas">
+    <span class="ring"></span>
+    <span class="avatar">👤</span>
+  </button>
+
+  <div id="acctDropdown" role="menu" aria-hidden="true">
+    <div class="acctHeader">
+      <strong>Perfiles</strong>
+      <button id="closeAcct" title="Cerrar">✖</button>
+    </div>
+
+    <div id="acctList" class="section"></div>
+
+    <div class="section small">
+      <button id="createAcctBtn" class="primary">+ Crear cuenta</button>
+    </div>
+
+    <div id="acctForms" class="forms">
+      <!-- Formularios se inyectan aquí -->
+    </div>
+  </div>
+</div>
+
+<style>
+  /* ---------- Widget top-right (cristal, minimal) ---------- */
+  #acctWidget { position: fixed; top: 18px; right: 18px; z-index: 20000; font-family: Inter, "Segoe UI", system-ui, sans-serif; }
+  #acctBtn {
+    width: 56px; height: 56px; border-radius: 50%;
+    border: 2px solid rgba(10,20,30,0.6);
+    background: linear-gradient(180deg, rgba(6,10,16,0.7), rgba(3,6,10,0.85));
+    box-shadow: 0 6px 20px rgba(0,0,0,0.6), 0 0 30px rgba(0,140,255,0.06), inset 0 1px 0 rgba(255,255,255,0.02);
+    color: #cfefff; display: grid; place-items: center; cursor: pointer; position: relative;
+    backdrop-filter: blur(8px) saturate(140%);
+  }
+  #acctBtn .avatar { font-size: 20px; text-shadow: 0 0 10px rgba(0,200,255,0.16); }
+  #acctBtn .ring {
+    position: absolute; left: -6px; top: -6px; right: -6px; bottom: -6px; border-radius: 50%;
+    border: 2px solid rgba(0,140,255,0.06);
+    box-shadow: 0 0 24px rgba(0,200,255,0.06);
+    pointer-events: none;
+  }
+  #acctBtn:hover { transform: translateY(-2px); transition: .18s; box-shadow: 0 10px 30px rgba(0,0,0,0.7), 0 0 40px rgba(0,200,255,0.06); }
+
+  /* Dropdown */
+  #acctDropdown {
+    width: 320px;
+    position: absolute;
+    right: 0;
+    top: 70px;
+    background: linear-gradient(180deg, rgba(3,10,16,0.78), rgba(6,12,18,0.85));
+    border: 1px solid rgba(0,200,220,0.06);
+    box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    border-radius: 14px;
+    padding: 12px;
+    color: #e6fbff;
+    display: none; /* toggle via JS */
+    backdrop-filter: blur(10px) saturate(160%);
+  }
+
+  #acctDropdown[aria-hidden="false"] { display: block; animation: dropIn .18s ease; }
+
+  @keyframes dropIn { from { transform: translateY(-6px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+
+  .acctHeader { display:flex; justify-content: space-between; align-items:center; margin-bottom:8px; }
+  .acctHeader strong { color: #aef6e6; filter: drop-shadow(0 0 8px rgba(0,200,200,0.08)); }
+
+  .section { margin: 8px 0; max-height: 220px; overflow:auto; }
+  .small { margin-top: 6px; }
+
+  /* Lista de cuentas */
+  .acctItem {
+    display:flex; align-items:center; gap:10px; padding:8px; border-radius:10px;
+    background: linear-gradient(90deg, rgba(0,0,0,0.18), rgba(255,255,255,0.02));
+    margin-bottom:8px; cursor:pointer;
+    transition: transform .12s, box-shadow .12s;
+  }
+  .acctItem:hover { transform: translateX(4px); box-shadow: 0 8px 18px rgba(0,140,255,0.04); }
+  .acctPic {
+    width:40px; height:40px; border-radius:50%; display:grid; place-items:center; font-size:18px;
+    background: linear-gradient(135deg,#002b40, #004955); color: #bfffe9; border:1px solid rgba(0,200,200,0.06);
+  }
+  .acctMeta { flex:1; min-width:0; }
+  .acctMeta .name { font-weight:600; color:#dff; white-space:nowrap; text-overflow:ellipsis; overflow:hidden; }
+  .acctMeta .email { font-size:12px; color:rgba(210,255,255,0.7); opacity:.9; }
+
+  .acctActions { display:flex; gap:8px; align-items:center; }
+  .btnTiny { padding:6px 8px; border-radius:8px; border:none; cursor:pointer; font-size:13px; background:rgba(0,140,255,0.06); color:#cdefef; }
+  .btnTiny.danger { background: linear-gradient(90deg,#ff4d6d33,#ff4d6d22); color:#ffdbe1; }
+
+  .primary { width:100%; padding:10px; border-radius:10px; font-weight:600; border:none; cursor:pointer; background:linear-gradient(90deg,#00ffd5,#00a8ff); color:#012; box-shadow: 0 6px 16px rgba(0,160,255,0.08); }
+
+  /* Forms */
+  .forms { margin-top:8px; display:flex; flex-direction:column; gap:8px; }
+  .formRow { display:flex; gap:8px; align-items:center; }
+  .formRow input { flex:1; padding:8px 10px; border-radius:8px; border:1px solid rgba(255,255,255,0.04); background:rgba(255,255,255,0.02); color:#e8fbff; outline:none; }
+  .formRow input::placeholder { color:rgba(220,255,255,0.45); }
+  .hint { font-size:12px; color:rgba(200,255,255,0.55); }
+
+  /* responsive small */
+  @media (max-width:420px) {
+    #acctDropdown { width: calc(100vw - 20px); right:10px; left:10px; }
+  }
+</style>
+
+<script>
+(function(){
+  // STORAGE KEYS
+  const KEY_USERS = 'mic_app_users_v1';
+  const KEY_CURRENT = 'mic_app_current_v1';
+
+  // helpers: load/save
+  function loadUsers(){ try{ return JSON.parse(localStorage.getItem(KEY_USERS) || '[]'); } catch(e){ return []; } }
+  function saveUsers(users){ localStorage.setItem(KEY_USERS, JSON.stringify(users)); }
+
+  // hash password (SHA-256) -> hex
+  async function hashPwd(pwd){
+    const enc = new TextEncoder().encode(pwd);
+    const digest = await crypto.subtle.digest('SHA-256', enc);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2,'0')).join('');
+  }
+
+  // find current user
+  function getCurrentEmail(){ return localStorage.getItem(KEY_CURRENT); }
+  function setCurrentEmail(email){ if(email) localStorage.setItem(KEY_CURRENT, email); else localStorage.removeItem(KEY_CURRENT); }
+
+  // UI elems
+  const acctBtn = document.getElementById('acctBtn');
+  const acctDropdown = document.getElementById('acctDropdown');
+  const acctList = document.getElementById('acctList');
+  const acctForms = document.getElementById('acctForms');
+  const createBtn = document.getElementById('createAcctBtn');
+  const closeAcct = document.getElementById('closeAcct');
+
+  // bind toggle
+  acctBtn.addEventListener('click', (e) => {
+    const open = acctDropdown.getAttribute('aria-hidden') === 'false';
+    acctDropdown.setAttribute('aria-hidden', open ? 'true' : 'false');
+    acctBtn.setAttribute('aria-expanded', !open);
+    if(!open) renderDropdown();
+  });
+  closeAcct.addEventListener('click', () => { acctDropdown.setAttribute('aria-hidden','true'); acctBtn.setAttribute('aria-expanded','false'); });
+
+  // clicking outside closes
+  document.addEventListener('click', (e) => {
+    if(!acctDropdown.contains(e.target) && !acctBtn.contains(e.target)){
+      acctDropdown.setAttribute('aria-hidden','true');
+      acctBtn.setAttribute('aria-expanded','false');
+    }
+  });
+
+  // render dropdown: list of accounts + small panel
+  function renderDropdown(){
+    acctList.innerHTML = '';
+    acctForms.innerHTML = '';
+
+    const users = loadUsers();
+    const current = getCurrentEmail();
+
+    if(users.length === 0){
+      acctList.innerHTML = '<div class="hint">No hay cuentas. Crea una.</div>';
+    } else {
+      users.forEach(u => {
+        const item = document.createElement('div');
+        item.className = 'acctItem';
+        item.innerHTML = `
+          <div class="acctPic">${(u.name||u.email||'U').slice(0,1).toUpperCase()}</div>
+          <div class="acctMeta">
+            <div class="name">${escapeHtml(u.name||u.email)}</div>
+            <div class="email">${escapeHtml(u.email)}</div>
+          </div>
+          <div class="acctActions">
+            ${current === u.email ? '<button class="btnTiny" disabled>Activo</button>' : `<button class="btnTiny" data-action="switch" data-email="${u.email}">Abrir</button>`}
+            <button class="btnTiny" data-action="info" data-email="${u.email}">Ver</button>
+            <button class="btnTiny danger" data-action="del" data-email="${u.email}">Borrar</button>
+          </div>
+        `;
+        acctList.appendChild(item);
+      });
+    }
+
+    // quick info area
+    const infoBox = document.createElement('div');
+    infoBox.className = 'section';
+    const curUser = users.find(x => x.email === current);
+    if(curUser){
+      const notesCount = (curUser.notes||'').length;
+      const chatsCount = (curUser.chats||[]).length;
+      infoBox.innerHTML = `
+        <div class="hint">Cuenta activa: <strong>${escapeHtml(curUser.name||curUser.email)}</strong></div>
+        <div class="hint">Notas: ${notesCount ? 'guardadas' : 'vacías'} · Chats: ${chatsCount}</div>
+        <div style="margin-top:8px;">
+          <button class="primary" id="logoutBtn">Cerrar sesión</button>
+        </div>
+      `;
+    } else {
+      infoBox.innerHTML = '<div class="hint">Ninguna sesión abierta.</div>';
+    }
+
+    acctForms.appendChild(infoBox);
+
+    // attach handlers
+    acctList.querySelectorAll('[data-action]').forEach(btn => {
+      btn.addEventListener('click', ev => {
+        const action = btn.getAttribute('data-action');
+        const email = btn.getAttribute('data-email');
+        if(action === 'switch') { loginByEmail(email); }
+        if(action === 'info') { showUserInfo(email); }
+        if(action === 'del')  { deleteUser(email); }
+      });
+    });
+
+    const logout = document.getElementById('logoutBtn');
+    if(logout) logout.addEventListener('click', () => { logoutUser(); renderDropdown(); });
+
+    // create form area loaded below on demand
+    renderCreateForm();
+  }
+
+  // escape helper
+  function escapeHtml(s){ if(!s) return ''; return s.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+  // show user info modal (simple)
+  function showUserInfo(email){
+    const users = loadUsers();
+    const u = users.find(x => x.email === email);
+    if(!u) return alert('Usuario no encontrado');
+    const info = `
+      Nombre: ${escapeHtml(u.name||'—')}
+      Email: ${escapeHtml(u.email)}
+      Notas guardadas: ${u.notes ? (u.notes.length>0 ? 'sí' : 'no') : 'no'}
+      Chats: ${u.chats ? u.chats.length : 0}
+    `;
+    alert(info);
+  }
+
+  // delete user
+  function deleteUser(email){
+    if(!confirm('¿Borrar esta cuenta y todos sus datos localmente?')) return;
+    let users = loadUsers();
+    users = users.filter(u => u.email !== email);
+    saveUsers(users);
+    if(getCurrentEmail() === email) setCurrentEmail(null);
+    renderDropdown();
+    syncNotesToUI();
+  }
+
+  // create form
+  function renderCreateForm(){
+    const container = document.createElement('div');
+    container.className = 'forms';
+    container.innerHTML = `
+      <div class="hint">Crear o iniciar sesión</div>
+      <div class="formRow"><input id="formName" placeholder="Nombre (opcional)"></div>
+      <div class="formRow"><input id="formEmail" placeholder="Correo electrónico"></div>
+      <div class="formRow"><input id="formPwd" type="password" placeholder="Contraseña"></div>
+      <div style="display:flex; gap:8px;">
+        <button id="doRegister" class="primary">Registrar</button>
+        <button id="doLogin" class="btnTiny">Iniciar sesión</button>
+      </div>
+    `;
+    acctForms.appendChild(container);
+
+    // bind
+    document.getElementById('doRegister').addEventListener('click', async () => {
+      const name = document.getElementById('formName').value.trim();
+      const email = document.getElementById('formEmail').value.trim().toLowerCase();
+      const pwd = document.getElementById('formPwd').value;
+      if(!validateEmail(email) || !pwd) return alert('Email y contraseña requeridos.');
+      const ok = await registerUser({name, email, pwd});
+      if(ok) { alert('Cuenta creada'); renderDropdown(); }
+    });
+    document.getElementById('doLogin').addEventListener('click', async () => {
+      const email = document.getElementById('formEmail').value.trim().toLowerCase();
+      const pwd = document.getElementById('formPwd').value;
+      if(!email || !pwd) return alert('Rellena email y contraseña.');
+      const ok = await loginUser({email, pwd});
+      if(ok) { alert('Sesión iniciada'); renderDropdown(); }
+      syncNotesToUI();
+    });
+  }
+
+  // email validator simple
+  function validateEmail(e){ return /\S+@\S+\.\S+/.test(e); }
+
+  // Register user
+  async function registerUser({name, email, pwd}){
+    const users = loadUsers();
+    if(users.find(u => u.email === email)) { alert('Ya existe una cuenta con ese email'); return false; }
+    const hp = await hashPwd(pwd);
+    const newU = { name: name||'', email, pwdHash: hp, notes: '', chats: [] };
+    users.push(newU);
+    saveUsers(users);
+    setCurrentEmail(email);
+    syncNotesToUI();
+    return true;
+  }
+
+  // Login
+  async function loginUser({email, pwd}){
+    const users = loadUsers();
+    const u = users.find(x => x.email === email);
+    if(!u) { alert('Cuenta no encontrada'); return false; }
+    const hp = await hashPwd(pwd);
+    if(hp !== u.pwdHash) { alert('Contraseña incorrecta'); return false; }
+    setCurrentEmail(email);
+    syncNotesToUI();
+    return true;
+  }
+
+  // Login by email (without pwd) - used when switching (if you want quick switch)
+  // Here we ask confirmation and require pwd prompt for security.
+  async function loginByEmail(email){
+    const pwd = prompt('Introduce la contraseña para abrir esta cuenta:');
+    if(pwd === null) return;
+    await loginUser({email, pwd});
+    renderDropdown();
+  }
+
+  // logout
+  function logoutUser(){
+    setCurrentEmail(null);
+    renderDropdown();
+    syncNotesToUI();
+  }
+
+  // Save notes for current user
+  function saveNotesForCurrent(text){
+    const email = getCurrentEmail();
+    if(!email) return;
+    const users = loadUsers();
+    const u = users.find(x => x.email === email);
+    if(!u) return;
+    u.notes = text;
+    saveUsers(users);
+  }
+
+  // load notes for current user
+  function loadNotesForCurrent(){
+    const email = getCurrentEmail();
+    if(!email) return '';
+    const users = loadUsers();
+    const u = users.find(x => x.email === email);
+    return u ? (u.notes||'') : '';
+  }
+
+  // Chat API: save chat items (array of objects {role:'user'|'assistant', text})
+  function saveChatForCurrent(entry){
+    const email = getCurrentEmail();
+    if(!email) return;
+    const users = loadUsers();
+    const u = users.find(x => x.email === email);
+    if(!u) return;
+    u.chats = u.chats || [];
+    u.chats.push(entry);
+    // keep last 200 messages max
+    if(u.chats.length > 200) u.chats = u.chats.slice(-200);
+    saveUsers(users);
+  }
+  function getChatsForCurrent(){ const email = getCurrentEmail(); if(!email) return []; const u = loadUsers().find(x=>x.email===email); return u ? (u.chats||[]) : []; }
+
+  // Expose some API globally
+  window.MIC_APP = {
+    registerUser,
+    loginUser,
+    logoutUser,
+    saveNotesForCurrent,
+    loadNotesForCurrent,
+    saveChatForCurrent,
+    getChatsForCurrent,
+    getCurrentEmail,
+    listUsers: loadUsers
+  };
+
+  // Hook into page notes area if exists: #notesArea (from your notes block)
+  function syncNotesToUI(){
+    const area = document.getElementById('notesArea');
+    if(!area) return;
+    const currentNotes = loadNotesForCurrent() || '';
+    if(area.isContentEditable) area.innerText = currentNotes;
+    else area.value = currentNotes;
+    // bind input -> save per-user
+    // remove existing to avoid duplicate listeners
+    area.removeEventListener('input', notesInputHandler);
+    area.addEventListener('input', notesInputHandler);
+  }
+  function notesInputHandler(e){
+    const val = e.target.isContentEditable ? e.target.innerText : e.target.value;
+    saveNotesForCurrent(val);
+  }
+
+  // run initial render
+  renderDropdown();
+  syncNotesToUI();
+
+  // small utility: on first load, if no users exist, create a sample guest user
+  (async function maybeCreateGuest(){
+    const users = loadUsers();
+    if(users.length === 0){
+      const pwd = 'guest'; // trivial password for guest; user can change / delete
+      const guestHash = await hashPwd(pwd);
+      users.push({name:'Guest', email:'guest@local', pwdHash: guestHash, notes:'', chats:[]});
+      saveUsers(users);
+    }
+    renderDropdown();
+  })();
+
+  // Expose quick saveChat helper for simple usage:
+  // usage: window.saveChat(messageFromUser, replyFromAssistant)
+  window.saveChat = function(userText, assistantText){
+    if(userText) saveChatForCurrent({role:'user', text:userText, time:Date.now()});
+    if(assistantText) saveChatForCurrent({role:'assistant', text:assistantText, time:Date.now()});
+  };
+
+  // End IIFE
+})();
+
+</script>
+
+
+<body>
+<div class="wrap" role="application" aria-label="Asistente Aden">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" aria-label="Barra lateral">
+    <div class="brand">
+      <div class="logo" title="Asistente Aden">º_º</div>
+      <div>
+        <h1 id="brandName">Aden — Asistente Local</h1>
+        <p id="brandTag">Versión amistosa · solo texto · LocalStorage</p>
+      </div>
+    </div>
+
+    <div class="controls" aria-hidden="false">
+      <button id="newChatBtn" class="btn primary" title="Crear nuevo chat">+ Nuevo</button>
+      <button id="importBtn" class="btn" title="Importar chats JSON">Importar</button>
+      <button id="exportAllBtn" class="btn" title="Exportar todos los chats">Exportar</button>
+    </div>
+
+    <div class="search" role="search" aria-label="Buscar chats">
+      <input id="searchChats" placeholder="Buscar chats o palabras clave..." aria-label="Buscar chats"/>
+      <div class="meta-pill" id="chatCount" aria-live="polite">0</div>
+    </div>
+
+    <div class="chats" id="chatsList" tabindex="0" aria-live="polite" aria-label="Lista de chats"></div>
+
+    <div class="settings-panel" aria-label="Ajustes rápidos">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <div>
+          <div class="small">Límite respuestas/chat</div>
+          <div class="muted" id="limitDisplay">12</div>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button id="decLimit" class="btn">-</button>
+          <button id="incLimit" class="btn">+</button>
+          <button id="resetLocal" class="btn">Reset</button>
+        </div>
+      </div>
+
+      <div class="hr"></div>
+
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:6px">
+        <div>
+          <div class="small">Voz &mdash; Lector</div>
+          <div class="muted">Sintetizador de voz local (SpeechSynthesis)</div>
+        </div>
+        <div>
+          <label class="toggle">
+            <input id="voiceMasterToggle" type="checkbox" aria-label="Activar/Desactivar voz"/>
+            <span class="kbd">Activar</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="voice-row" aria-label="Selector de voz">
+        <button id="voiceAuto" class="voice-btn active" title="Automático">Automático</button>
+        <button id="voiceMale" class="voice-btn" title="Forzar voz masculina">Masculino</button>
+        <button id="voiceFemale" class="voice-btn" title="Forzar voz femenina">Femenina</button>
+      </div>
+
+      <div style="margin-top:10px">
+        <div class="small">Personalidad</div>
+        <div class="muted">La personalidad por defecto se mantiene (Proximamente Modificable).</div>
+      </div>
+    </div>
+
+    <div class="footer-bar" aria-hidden="false">
+      <div>
+        <div class="small">Atajos</div>
+        <div class="muted">Enter = enviar · Shift+Enter = nueva línea</div>
+      </div>
+      <div style="text-align:right">
+        <div class="small accent">Aden v8</div>
+        <div class="muted">Local · Off-line</div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN PANEL -->
+  <main class="panel" role="main">
+    <div class="panel-header">
+      <div class="left">
+        <h2 id="panelTitle">Bienvenido — selecciona o crea un chat</h2>
+        <div class="muted" id="responsesLeft"></div>
+      </div>
+      <div class="panel-actions">
+        <button id="renameChatBtn" class="btn" title="Renombrar chat">Renombrar</button>
+        <button id="clearChatBtn" class="btn" title="Vaciar mensajes">Vaciar</button>
+        <button id="deleteChatBtn" class="btn danger" title="Eliminar chat">Eliminar</button>
+      </div>
+    </div>
+
+    <div class="messages" id="messagesArea" aria-live="polite" aria-label="Mensajes">
+      <div class="muted">Crea un chat y escribe algo. Prueba: "Buenas", "hazme reir", "cuentame algo".</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:12px">
+      <div class="chips" id="suggestions" aria-hidden="false"></div>
+
+      <div class="compose" role="form" aria-label="Enviar mensaje">
+        <textarea id="inputTxt" placeholder="Escribe tu mensaje... (Enter = enviar, Shift+Enter = nueva línea)" aria-label="Mensaje"></textarea>
+        <div class="right">
+          <button id="sendBtn" class="btn primary">Enviar (Enter)</button>
+          <div style="display:flex;flex-direction:column;gap:6px">
+            <div style="display:flex;gap:6px"><button id="undoBtn" class="btn ghost" title="Deshacer">↶</button><button id="redoBtn" class="btn ghost" title="Rehacer">↷</button></div>
+            <div class="muted" id="charCount">0 caracteres</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- FAQ Toggle Button -->
+<button id="faqToggle" title="Mostrar preguntas (FAQ)">FAQ</button>
+
+<!-- FAQ Drawer -->
+<div id="faqDrawer" aria-hidden="true">
+  <div class="header">
+    <div>
+      <div class="title">Preguntas que Aden entiende</div>
+      <div class="muted">Haz clic en "Pegar" o "Enviar" para usar una pregunta</div>
+    </div>
+    <div class="muted">Total: <span id="faqCount">0</span></div>
+  </div>
+
+  <input id="faqSearch" placeholder="Buscar en preguntas (ej: hora, chiste, python)"/>
+
+  <div id="faqList"></div>
+
+  <div class="footer">
+    <div class="muted">Tip: pulsa "Enviar" para enviar inmediatamente.</div>
+    <div><button id="faqClose" class="btn small">Cerrar</button></div>
+  </div>
+</div>
+<!-- --- Aden (ojos sencillos, sin puntos negros) --- -->
+<div id="aden" role="button" aria-label="Aden, asistente" tabindex="0">
+  <div class="eye left"></div>
+  <div class="eye right"></div>
+  <div class="mouth"></div>
+</div>
+
+<div id="aden-message" aria-live="polite"></div>
+
+<style>
+  :root{
+    --aden-left: 18px;
+    --aden-top: 18px;
+    --size: 60px;
+    --neon: #00ff99;
+    --neon-2: #00ffaa;
+  }
+
+  /* Contenedor (anillo) */
+  #aden{
+    position: fixed;
+    left: var(--aden-left);
+    top: var(--aden-top);
+    width: var(--size);
+    height: var(--size);
+    border-radius: 50%;
+    z-index: 999999;
+    cursor: pointer;
+    pointer-events: auto;
+    background:
+      radial-gradient(circle at 50% 50%, rgba(0,255,160,0.12) 30%, rgba(0,255,160,0.02) 55%),
+      linear-gradient(135deg, rgba(0,255,160,0.06), rgba(0,255,160,0.02));
+    border: 3px solid rgba(0,255,160,0.95);
+    box-shadow:
+      0 0 18px rgba(0,255,160,0.15),
+      0 0 38px rgba(0,255,160,0.18),
+      inset 0 0 10px rgba(0,255,160,0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 220ms ease, box-shadow 220ms ease;
+    animation: float-slow 12s ease-in-out infinite;
+  }
+
+  #aden:hover, #aden:focus{
+    transform: scale(1.08);
+    box-shadow:
+      0 0 30px rgba(0,255,160,0.25),
+      0 0 60px rgba(0,255,160,0.22),
+      inset 0 0 14px rgba(0,255,160,0.14);
+    outline: none;
+  }
+
+  @keyframes float-slow{
+    0%   { transform: translate3d(0, 0, 0) scale(1); }
+    25%  { transform: translate3d(10px, 6px, 0) scale(1.02); }
+    50%  { transform: translate3d(-12px, 12px, 0) scale(1); }
+    75%  { transform: translate3d(8px, -6px, 0) scale(0.995); }
+    100% { transform: translate3d(0, 0, 0) scale(1); }
+  }
+
+  /* Ojos: sencillos, sin puntos negros */
+  .eye{
+    position: absolute;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    top: calc(var(--size) * 0.28);
+    /* ojo simple: centro claro y borde suave fosforito */
+    background: radial-gradient(circle at 40% 35%, #eafff5 35%, rgba(0,255,200,0.85) 70%);
+    box-shadow: 0 0 8px rgba(0,255,170,0.22);
+  }
+  .eye.left{ left: calc(var(--size) * 0.18); }
+  .eye.right{ right: calc(var(--size) * 0.18); }
+
+  /* Boca (sutil) */
+  .mouth{
+    position: absolute;
+    bottom: calc(var(--size) * 0.22);
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 6px;
+    border-radius: 20px;
+    background: linear-gradient(90deg, rgba(0,255,200,0.85), rgba(0,255,170,0.95));
+    opacity: 0.9;
+    box-shadow: 0 0 8px rgba(0,255,150,0.18);
+  }
+
+  /* Mensaje */
+  #aden-message{
+    position: fixed;
+    left: calc(var(--aden-left) + var(--size) + 12px);
+    top: calc(var(--aden-top) + 6px);
+    transform-origin: left top;
+    background: linear-gradient(180deg, rgba(0,0,0,0.40), rgba(8,8,8,0.25));
+    padding: 10px 14px;
+    border-radius: 12px;
+    min-width: 160px;
+    max-width: 360px;
+    color: var(--neon);
+    font-family: "Segoe UI", Roboto, system-ui, -apple-system, "Helvetica Neue", Arial;
+    font-size: 13.5px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.45), 0 0 18px rgba(0,255,150,0.07);
+    text-shadow: 0 0 8px rgba(0,255,150,0.08);
+    border: 1px solid rgba(0,255,150,0.06);
+    opacity: 0;
+    transition: opacity 420ms ease, transform 420ms ease;
+    z-index: 999998;
+    pointer-events: none;
+    backdrop-filter: blur(6px) saturate(120%);
+  }
+
+  #aden-message.show{
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  #aden-message b{ color: #d7fff0; font-weight: 700; }
+  #aden-message .muted{ color: rgba(200,255,230,0.7); font-size: 13px; display:block; margin-top:4px; }
+
+  @media (prefers-reduced-motion: reduce){
+    #aden, #aden:hover, #aden:focus { animation: none; transition: none; transform: none; }
+  }
+</style>
+
+<script>
+  (function(){
+    const aden = document.getElementById('aden');
+    const message = document.getElementById('aden-message');
+
+    const phrases = [
+      '<b>Hola, soy Aden.</b> 👋',
+      '<b>Tu asistente</b> — Tips y ayuda tech.',
+      '<b>¿Buscas algo?</b> Puedo sugerir ideas o atajos.',
+      '<b>Tengo buen gusto</b> por lo brillante y claro. ✨',
+      '<b>Listo</b> cuando tú quieras. 🚀'
+    ];
+
+    let idx = 0;
+    let autoTimer = null;
+
+    function showMessage(duration = 3800){
+      message.innerHTML = phrases[idx] + '<span class="muted"> (haz clic para repetir)</span>';
+      message.classList.add('show');
+      message.setAttribute('aria-hidden', 'false');
+
+      clearTimeout(autoTimer);
+      autoTimer = setTimeout(() => {
+        message.classList.remove('show');
+        message.setAttribute('aria-hidden', 'true');
+        idx = (idx + 1) % phrases.length;
+      }, duration);
+    }
+
+    aden.addEventListener('click', () => showMessage(4200));
+    aden.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); showMessage(4200); }
+    });
+
+    // Mensaje automático ocasional (cada 9s): discreto
+    setInterval(() => {
+      if (!message.classList.contains('show')) showMessage(3800);
+    }, 9000);
+
+    // Inicial: oculto (aria)
+    message.setAttribute('aria-hidden', 'true');
+  })();
+</script>
+
+
+
+<script>
+/* =========================================================================
+   Aden v8 con FAQ - JavaScript
+   - Este fichero actualiza la versión anterior.
+   - Se ha añadido: panel FAQ desplegable, más preguntas y respuestas,
+     interacciones más humanas (variaciones), y enlace rápido desde el FAQ.
+   ========================================================================= */
+
+/* -----------------------
+   Estado & Configuración
+   ----------------------- */
+const STORAGE_KEY = 'aden_local';
+const DEFAULT_LIMIT = 12;
+let chats = [];
+let activeChatId = null;
+let responsesLimit = DEFAULT_LIMIT;
+let undoStack = [], redoStack = [];
+let ttsEnabled = false;
+let ttsMode = 'auto'; // 'auto' | 'male' | 'female'
+let voiceMap = {};
+let lastAssistantUtterance = '';
+
+/* Utilidades */
+function uid(prefix='id'){ return prefix+'-'+Math.random().toString(36).slice(2,12); }
+function saveChats(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(chats)); }
+function loadChats(){
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if(saved){
+    try{ chats = JSON.parse(saved) || []; } catch(e){ console.warn('localStorage parse error', e); chats=[]; localStorage.removeItem(STORAGE_KEY); }
+  } else chats = [];
+  renderChatList();
+}
+function formatTime(ts){ const d = new Date(ts); return d.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'}); }
+function escapeHtml(s){ if(!s) return ''; return String(s).replace(/[&<>"']/g, (m)=>({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])); }
+
+/* -----------------------
+   Render lista de chats / mensajes
+   ----------------------- */
+function renderChatList(){
+  const list = document.getElementById('chatsList'); list.innerHTML='';
+  chats.sort((a,b)=>(b.updated||0)-(a.updated||0));
+  chats.forEach(c=>{
+    const div = document.createElement('div');
+    div.className = 'chat-item fade-in';
+    if(c.id === activeChatId) div.classList.add('active');
+    const initial = c.name ? c.name[0].toUpperCase() : 'C';
+    const mcount = (c.messages && c.messages.length) || 0;
+    div.innerHTML = `<div class="chat-thumb" aria-hidden="true">${escapeHtml(initial)}</div>
+      <div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${mcount} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`;
+    div.onclick = ()=>{ activeChatId = c.id; renderChatList(); renderMessages(); updatePanelTitle(); };
+    list.appendChild(div);
+  });
+  document.getElementById('chatCount').textContent = chats.length;
+}
+
+function getActiveChat(){ return chats.find(x=>x.id===activeChatId); }
+
+function renderMessages(){
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  const chat = getActiveChat();
+  if(!chat){ area.innerHTML = '<div class="muted">Crea un chat y empieza a conversar con Aden 😄</div>'; updatePanelTitle(); return; }
+  if(!chat.messages || chat.messages.length===0){ area.innerHTML = '<div class="muted">Escribe algo para que Aden responda. Prueba: "cuentame algo", "hazme reir", "29 x 45".</div>'; updatePanelTitle(); return; }
+  chat.messages.forEach(m=>{
+    const div = document.createElement('div');
+    div.className = 'bubble '+(m.role==='user'?'user':'assistant')+' fade-in';
+    const ts = m.timestamp ? formatTime(m.timestamp) : '';
+    const content = escapeHtml(m.text).replace(/\n/g,'<br>');
+    div.innerHTML = `<div class="text">${content}</div><div class="meta"><span class="small muted">${m.role==='user'?'Tú':'Aden'}</span><span class="muted small">${ts}</span></div>`;
+    area.appendChild(div);
+  });
+  area.scrollTop = area.scrollHeight;
+}
+
+/* -----------------------
+   Mensajes: añadir y guardar
+   ----------------------- */
+function addMessage(role, text){
+  const chat = getActiveChat();
+  if(!chat) return;
+  const msg = { role, text: String(text), timestamp: Date.now() };
+  chat.messages.push(msg);
+  chat.updated = Date.now();
+  saveChats();
+  renderMessages();
+  renderChatList();
+  if(role === 'assistant'){
+    lastAssistantUtterance = text;
+    if(!chat.meta) chat.meta = {};
+    chat.meta.greeted = true;
+    if(ttsEnabled) speakWithMode(text, detectEmotionSimple(text));
+  }
+}
+
+/* -----------------------
+   Crear, borrar, renombrar, limpiar
+   ----------------------- */
+function createNewChat(initialName){
+  const id = uid('chat');
+  const name = initialName || ('Chat '+(chats.length+1));
+  const newChat = { id, name, messages: [], created: Date.now(), updated: Date.now(), meta: { greeted:false } };
+  chats.push(newChat);
+  activeChatId = id;
+  saveChats();
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  // Mensaje de bienvenida (suave)
+  addMessage('assistant','¡Hola! Soy Aden, tu asistente local. ¿En qué puedo ayudarte hoy?');
+}
+function deleteActiveChat(){
+  if(!activeChatId) return;
+  const idx = chats.findIndex(c=>c.id===activeChatId);
+  if(idx>=0){
+    if(!confirm('¿Seguro que quieres eliminar este chat?')) return;
+    chats.splice(idx,1);
+    activeChatId = chats.length ? chats[0].id : null;
+    saveChats(); renderChatList(); renderMessages(); updatePanelTitle();
+  }
+}
+function clearActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return;
+  if(!confirm('Vaciar mensajes del chat actual?')) return;
+  chat.messages = []; chat.updated = Date.now(); chat.meta = { greeted:false };
+  saveChats(); renderMessages(); renderChatList();
+}
+function renameActiveChat(){
+  const chat = getActiveChat();
+  if(!chat) return alert('Selecciona un chat primero.');
+  const newName = prompt('Nuevo nombre del chat:', chat.name);
+  if(newName && newName.trim()){ chat.name = newName.trim(); chat.updated = Date.now(); saveChats(); renderChatList(); updatePanelTitle(); }
+}
+
+/* -----------------------
+   Export / Import JSON
+   ----------------------- */
+function exportAllChats(){ const dataStr = JSON.stringify(chats,null,2); const blob = new Blob([dataStr],{type:'application/json'}); const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='aden_chats_export.json'; a.click(); URL.revokeObjectURL(url); }
+function importChatsFromFile(file){ const reader = new FileReader(); reader.onload = (e)=>{ try{ const parsed = JSON.parse(e.target.result); if(Array.isArray(parsed)){ parsed.forEach(p=>{ if(!p.id) p.id = uid('chat'); if(!p.messages) p.messages = []; if(!p.meta) p.meta = { greeted:false }; }); chats = chats.concat(parsed); saveChats(); renderChatList(); alert('Importación completa.'); } else alert('Formato inválido: se esperaba un array de chats.'); } catch(err){ alert('Error al importar: '+err.message); } }; reader.readAsText(file); }
+
+/* -----------------------
+   Text-to-Speech (TTS)
+   ----------------------- */
+function getAvailableVoices(){ return window.speechSynthesis ? window.speechSynthesis.getVoices() : []; }
+function chooseVoice(preference='auto', intention='neutral'){
+  if(!('speechSynthesis' in window)) return null;
+  const voices = getAvailableVoices();
+  if(!voices || voices.length===0) return null;
+  const esVoices = voices.filter(v=>/(^es|spanish|es-)/i.test(v.lang) || /spanish|español/i.test(v.name));
+  const pool = esVoices.length ? esVoices : voices;
+  // heurística simple
+  let chosen = null;
+  if(preference === 'male'){
+    chosen = pool.find(v=>/male|hombre|masculin/i.test(v.name)) || pool[0];
+  } else if(preference === 'female'){
+    chosen = pool.find(v=>/female|mujer|femenin|female/i.test(v.name)) || pool[0];
+  } else {
+    if(intention === 'empathic') chosen = pool.find(v=>/soft|natural|calm|ana|laura|maria|marta/i.test(v.name)) || pool[0];
+    else chosen = pool.find(v=>/standard|es-ES|es-419/i.test(v.name)) || pool[0];
+  }
+  return chosen;
+}
+function speakTextUtterance(text, voiceObj=null, rate=1, pitch=1, lang='es-ES'){
+  if(!('speechSynthesis' in window)) return;
+  try{ window.speechSynthesis.cancel(); const ut = new SpeechSynthesisUtterance(String(text)); if(voiceObj) ut.voice = voiceObj; ut.rate = rate; ut.pitch = pitch; ut.lang = lang; window.speechSynthesis.speak(ut); } catch(e){ console.warn('TTS error', e); }
+}
+function speakWithMode(text, intention='neutral'){
+  if(!ttsEnabled) return;
+  const pref = ttsMode || 'auto';
+  const voice = chooseVoice(pref, intention);
+  let rate = 1.0, pitch = 1.0;
+  if(intention === 'empathic'){ rate = 0.95; pitch = 1.05; }
+  else if(intention === 'alert'){ rate = 1.1; pitch = 1.0; }
+  speakTextUtterance(text, voice, rate, pitch, 'es-ES');
+}
+
+/* -----------------------
+   KEYWORD_ACTIONS: banco de triggers y handlers (ampliado)
+   ----------------------- */
+const KEYWORD_ACTIONS = [
+  { keywords:['idiota','imbecil','tonto','estupido','estúpido','gilipollas','cabron','cabrón','mierda','puta','puto','hijo de puta','zorra','bobo','subnormal','payaso'], priority:999, handler: ()=> 'No seguiré esta conversación si sigues así.' },
+  { keywords:['hora','horas','reloj','qué hora','que hora','hora es'], priority:900, handler: ()=> `⌚ Ahora mismo es ${new Date().toLocaleTimeString()}.` },
+  { keywords:['fecha','día','dia','qué día','que dia','qué fecha','que fecha','día de hoy'], priority:860, handler: ()=> `📅 Hoy es ${new Date().toLocaleDateString('es-ES', {weekday:'long',year:'numeric',month:'long',day:'numeric'})}.` },
+  { keywords:['x','*','por','multiplica','multiplicación'], priority:850, handler: (txt)=>{ const m1 = txt.match(/(-?\d+)\s*[x\*]\s*(-?\d+)/); if(m1){ const a=parseInt(m1[1],10), b=parseInt(m1[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } const m2 = txt.match(/multiplica\s+(-?\d+)\s+por\s+(-?\d+)/i); if(m2){ const a=parseInt(m2[1],10), b=parseInt(m2[2],10); if(!isNaN(a)&&!isNaN(b)) return `🧮 ${a} por ${b} es ${a*b}.`; } return '🧮 Dime la multiplicación con números, por ejemplo: "25 x 47"'; } },
+  { keywords:['traduce','traducir','traducción'], priority:800, handler: (txt)=>{ const after = txt.split(/traduce[:\s]|traducir[:\s]/i)[1]; if(after && after.trim()) return `🌐 Traducción (simulada): "${after.trim()}" => (ejemplo offline).`; return '🌐 Dime el texto que quieres traducir después de "traduce" o "traducir".'; } },
+  { keywords:['triste','deprim','alegre','feliz','ansiedad','ansioso','ansiosa','enfadado','enojado','solo','sola','solo.'], priority:790, handler: (txt)=>{ if(/triste|deprim/i.test(txt)) return chooseVariation(['Siento que te sientas así. Si quieres, puedo escucharte y darte algunas ideas para animarte.','Lo siento — te acompaño. ¿Quieres que hablemos un rato?','Lamento que te sientas así. ¿Te apetece un consejo sencillo para mejorar el ánimo?']); if(/ansiedad|ansioso|ansiosa|estres|estrés/i.test(txt)) return chooseVariation(['Respirar profundamente 4-4-4 puede ayudar. ¿Quieres que te guíe?','Intentar respirar despacio 5 minutos ayuda a calmar la ansiedad. ¿Lo intentamos?']); if(/enfadad|enojad|cabre/i.test(txt)) return chooseVariation(['Respirar y dar un paso atrás suele funcionar. ¿Quieres distraerte con algo?','Lo entiendo. ¿Quieres contarme por qué te enfada?']); return 'Si quieres, cuéntame más.'; } },
+  { keywords:['inteligencia artificial','ia','agujero negro','everest','tokio','capital de japón','capital japon','rusia'], priority:650, handler: (txt)=>{ if(/inteligencia artificial|ia/.test(txt)) return '🤖 La inteligencia artificial es la simulación de procesos inteligentes por máquinas. Puedo darte ejemplos o explicarlo con analogías.'; if(/agujero negro/.test(txt)) return '🌌 Un agujero negro es una región del espacio con gravedad tan intensa que ni la luz puede escapar.'; if(/everest|montaña más alta/.test(txt)) return '🗻 El monte Everest es la montaña más alta (≈8848 m).'; if(/capital.*jap|tokio/.test(txt)) return '🏯 La capital de Japón es Tokio.'; if(/rusia|país más grande/.test(txt)) return '🌏 Rusia es el país más grande por superficie.'; return null; } },
+  { keywords:['minecraft','juego','videojuego','steam','serie parecida','breaking bad','one piece','pelicula','películas'], priority:600, handler: (txt)=>{ if(/minecraft/.test(txt)) return '⛏️ Si te gusta Minecraft, quizá disfrutes también de Terraria o Stardew Valley.'; if(/breaking bad|serie parecida/.test(txt)) return '📺 Te recomiendo "Better Call Saul" si te gustó Breaking Bad.'; if(/one piece/.test(txt)) return '🖥️ Puedes ver One Piece en plataformas como Crunchyroll o Netflix según tu región.'; if(/steam/.test(txt)) return '🎮 Para ofertas en Steam, revisa su sección de rebajas.'; return null; } },
+  { keywords:['receta','comer','cocina','cena','almuerzo','desayuno','comida'], priority:560, handler: (txt)=>{ if(/receta.*pasta|pasta/.test(txt)) return '🍝 Una receta rápida: pasta con tomate, ajo, aceite, albahaca y queso. ¿Quieres la receta paso a paso?'; if(/receta.*tortilla|tortilla/.test(txt)) return '🥚 Tortilla: bate huevos, saltea patata/pimiento, mezcla y cocina a fuego medio.'; return '¿Qué te apetece cocinar? Dime un ingrediente y te doy ideas.'; } },
+  { keywords:['programacion','python','javascript','html','css','git','npm','linux','bash','regex'], priority:540, handler: (txt)=>{ if(/python/.test(txt)) return '🐍 Python es genial para scripting y ciencia de datos. ¿Quieres un ejemplo rápido?'; if(/javascript/.test(txt)) return '📜 JavaScript es el lenguaje de la web. ¿Necesitas un snippet para DOM, fetch o async/await?'; if(/git/.test(txt)) return '🔧 Git: usa "git status", "git add .", "git commit -m \'msg\'" y "git push". ¿Quieres ayuda con un conflicto?'; if(/linux|bash/.test(txt)) return '🐧 Para sistemas Linux puedes usar "top", "htop", "ls -la" y "journalctl -xe". ¿Qué distro usas?'; return null; } },
+  { keywords:['salud','dolor','fiebre','resfriado','medicina'], priority:520, handler: (txt)=>{ return 'No soy médico, pero si tienes síntomas persistentes te recomiendo consultar con un profesional. Puedo ofrecer consejos generales (descanso, hidratación, controlar temperatura).'; } },
+  { keywords:['productividad','todo','tareas','organizar','planificar','agenda'], priority:500, handler: (txt)=>{ return chooseVariation(['Organiza en bloques pequeños (25–50 min), descansa 5–10 min entre ellos. ¿Quieres que te sugiera un plan de hoy?','Probar la técnica Pomodoro ayuda a concentrarte: 25 minutos trabajo / 5 descanso.']); } },
+  { keywords:['motivación','frase motivadora','ánimo','ánimo por favor','inspiración','cita inspiradora'], priority:450, handler: (txt)=>{ const quotes = ['💬 “Hazlo con miedo, pero hazlo.”','💪 “Pequeños pasos cada día llevan lejos.”','🌱 “No es quién eres, es quién decides ser.”']; return quotes[Math.floor(Math.random()*quotes.length)]; } },
+  { keywords:['_default_'], priority:1, handler: ()=> '😅 No estoy seguro de eso. Intenta con otra palabra clave o pregunta de forma distinta.' }
+];
+
+/* -----------------------
+   Normalización / matching
+   ----------------------- */
+function normalizeText(s){ return (s||'').toString().toLowerCase(); }
+function tokenize(s){ return (s||'').toString().toLowerCase().split(/[^a-z0-9áéíóúñü]+/).filter(Boolean); }
+
+function chooseVariation(arr){ return arr[Math.floor(Math.random()*arr.length)]; }
+
+/* findResponseByKeyword: detecta keywords y retorna respuesta */
+function findResponseByKeyword(userText){
+  const txt = normalizeText(userText);
+  const tokens = tokenize(txt);
+  const matched = [];
+  for(const action of KEYWORD_ACTIONS){
+    for(const kw of action.keywords){
+      if(kw === '_default_') continue;
+      const lkw = kw.toString().toLowerCase();
+      if(txt.includes(lkw) || tokens.includes(lkw)){ matched.push(action); break; }
+    }
+  }
+  if(matched.length > 0){
+    matched.sort((a,b)=>b.priority - a.priority);
+    const chosen = matched[0];
+    try{ if(typeof chosen.handler === 'function') return chosen.handler(userText); return String(chosen.handler); } catch(err){ console.warn('Error handler', err); return 'Lo siento, algo falló al procesar la respuesta.'; }
+  }
+  const fallback = KEYWORD_ACTIONS.find(a=>a.keywords.includes('_default_'));
+  return fallback ? fallback.handler() : 'No lo sé.';
+}
+
+/* -----------------------
+   Emoción simple
+   ----------------------- */
+function detectEmotionSimple(text){
+  const t = normalizeText(text);
+  if(/triste|deprim|melancol|llor|nostálg|solo|sola|ansiedad|ansioso|ansiosa|angustia/.test(t)) return 'empathic';
+  if(/enfadad|enojad|cabre|rabia|furia/.test(t)) return 'alert';
+  return 'neutral';
+}
+
+/* -----------------------
+   generateResponse: controla presentación y variaciones humanas
+   ----------------------- */
+function generateResponse(userText){
+  if(!userText) return '';
+  const chat = getActiveChat();
+  // si chat existe y no ha saludado, no forzar presentación si user pregunta algo concreto
+  let resp = findResponseByKeyword(userText);
+  // Evitar repeticiones exactas de la presentación si ya saludó
+  if(chat && chat.meta && chat.meta.greeted && typeof resp === 'string' && /hola|soy aden|asistente local/i.test(resp)){
+    const alternatives = ['¿Puedes explicar un poco más?', 'Interesante — cuéntame más.', 'No estoy seguro de eso, ¿me lo reformulas?'];
+    return alternatives[Math.floor(Math.random()*alternatives.length)];
+  }
+  if(chat){ if(!chat.meta) chat.meta = {}; chat.meta.greeted = true; }
+  return resp || '😅 No estoy seguro de eso; prueba con otra pregunta.';
+}
+
+/* Simulación de typing */
+let typingTimer = null;
+function simulateAdenTypingAndRespond(userText){
+  const messagesArea = document.getElementById('messagesArea');
+  const indicator = document.createElement('div');
+  indicator.className = 'bubble assistant fade-in';
+  indicator.innerHTML = `<div class="text"><span class="typing"><span></span><span></span><span></span></span> Aden está escribiendo...</div>`;
+  messagesArea.appendChild(indicator);
+  messagesArea.scrollTop = messagesArea.scrollHeight;
+  const wait = 250 + Math.random()*900;
+  if(typingTimer) clearTimeout(typingTimer);
+  typingTimer = setTimeout(()=>{
+    indicator.remove();
+    const answer = generateResponse(userText);
+    addMessage('assistant', answer);
+  }, wait);
+}
+
+/* -----------------------
+   Input handlers
+   ----------------------- */
+function handleUserInput(){
+  const inputEl = document.getElementById('inputTxt');
+  const txt = inputEl.value.trim();
+  if(!txt) return;
+  addMessage('user', txt);
+  undoStack.push(txt); redoStack = [];
+  inputEl.value = '';
+  updateCharCount();
+  simulateAdenTypingAndRespond(txt);
+}
+
+/* keyboard */
+document.getElementById('inputTxt').addEventListener('keydown', e=>{
+  if(e.key === 'Enter' && !e.shiftKey){ e.preventDefault(); handleUserInput(); }
+});
+
+/* undo/redo */
+document.getElementById('undoBtn').onclick = ()=>{ if(undoStack.length===0) return; const last = undoStack.pop(); redoStack.push(last); document.getElementById('inputTxt').value = undoStack.length ? undoStack[undoStack.length-1] : ''; updateCharCount(); };
+document.getElementById('redoBtn').onclick = ()=>{ if(redoStack.length===0) return; const next = redoStack.pop(); undoStack.push(next); document.getElementById('inputTxt').value = next; updateCharCount(); };
+
+/* botones principales */
+document.getElementById('newChatBtn').onclick = ()=> createNewChat();
+document.getElementById('sendBtn').onclick = ()=> handleUserInput();
+document.getElementById('decLimit').onclick = ()=>{ responsesLimit = Math.max(1, responsesLimit-1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('incLimit').onclick = ()=>{ responsesLimit = Math.min(100, responsesLimit+1); document.getElementById('limitDisplay').textContent = responsesLimit; };
+document.getElementById('resetLocal').onclick = ()=>{ if(confirm('Resetear Aden: eliminar todos los chats y ajustes?')){ localStorage.removeItem(STORAGE_KEY); chats=[]; activeChatId=null; responsesLimit = DEFAULT_LIMIT; document.getElementById('limitDisplay').textContent = responsesLimit; loadChats(); renderMessages(); } };
+document.getElementById('renameChatBtn').onclick = renameActiveChat;
+document.getElementById('clearChatBtn').onclick = clearActiveChat;
+document.getElementById('deleteChatBtn').onclick = deleteActiveChat;
+document.getElementById('exportAllBtn').onclick = exportAllChats;
+document.getElementById('importBtn').onclick = ()=>{ const inp=document.createElement('input'); inp.type='file'; inp.accept='application/json'; inp.onchange=(e)=>{ const f=e.target.files[0]; if(f) importChatsFromFile(f); }; inp.click(); };
+
+/* search chats */
+document.getElementById('searchChats').addEventListener('input', e=>{
+  const q = e.target.value.trim().toLowerCase();
+  const list = document.getElementById('chatsList'); list.innerHTML = '';
+  const filtered = chats.filter(c=>{ if(!q) return true; const nm = c.name.toLowerCase(); const anyMsg = (c.messages||[]).some(m=> (m.text||'').toLowerCase().includes(q)); return nm.includes(q) || anyMsg; });
+  filtered.forEach(c=>{ const div=document.createElement('div'); div.className='chat-item fade-in'; if(c.id===activeChatId) div.classList.add('active'); div.innerHTML=`<div class="chat-thumb">${escapeHtml(c.name[0]||'C')}</div><div class="chat-meta"><h4>${escapeHtml(c.name)}</h4><p class="muted">${(c.messages||[]).length} mensajes · ${c.updated?formatTime(c.updated):''}</p></div>`; div.onclick=()=>{ activeChatId=c.id; renderChatList(); renderMessages(); updatePanelTitle(); }; list.appendChild(div); });
+  document.getElementById('chatCount').textContent = filtered.length;
+});
+
+/* suggestions */
+const SUGGESTIONS = ['hola','dato raro','hazme reir','hora','fecha','que tal','25 x 47','me siento triste','qué es la inteligencia artificial','receta','ayuda con python','cómo usar git'];
+function renderSuggestions(){ const container=document.getElementById('suggestions'); container.innerHTML=''; SUGGESTIONS.forEach(s=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=s; c.onclick=()=>{ document.getElementById('inputTxt').value=s; updateCharCount(); document.getElementById('inputTxt').focus(); }; container.appendChild(c); }); }
+
+/* char counter */
+function updateCharCount(){ const v = document.getElementById('inputTxt').value || ''; document.getElementById('charCount').textContent = `${v.length} caracteres`; }
+document.getElementById('inputTxt').addEventListener('input', updateCharCount);
+
+/* voice toggles */
+document.getElementById('voiceMasterToggle').addEventListener('change', e=>{ ttsEnabled = e.target.checked; const k = document.querySelector('.kbd'); if(k) k.textContent = ttsEnabled ? 'Activado' : 'Desactivar'; if(!ttsEnabled && window.speechSynthesis) window.speechSynthesis.cancel(); });
+document.getElementById('voiceAuto').addEventListener('click', ()=>{ ttsMode='auto'; setVoiceButtonsState(); });
+document.getElementById('voiceMale').addEventListener('click', ()=>{ ttsMode='male'; setVoiceButtonsState(); });
+document.getElementById('voiceFemale').addEventListener('click', ()=>{ ttsMode='female'; setVoiceButtonsState(); });
+function setVoiceButtonsState(){ document.getElementById('voiceAuto').classList.toggle('active', ttsMode==='auto'); document.getElementById('voiceMale').classList.toggle('active', ttsMode==='male'); document.getElementById('voiceFemale').classList.toggle('active', ttsMode==='female'); }
+window.speechSynthesis?.addEventListener?.('voiceschanged', ()=>{ getAvailableVoices(); });
+
+/* panel title */
+function updatePanelTitle(){ const chat = getActiveChat(); const title = document.getElementById('panelTitle'); if(!chat) title.textContent = 'Bienvenido — selecciona o crea un chat'; else title.textContent = `${chat.name} · ${chat.messages.length} mensajes`; document.getElementById('responsesLeft'); }
+
+/* -----------------------
+   FAQ Drawer: datos y render
+   ----------------------- */
+
+/* FAQ_ITEMS: preguntas y respuestas legibles (esto es lo que se muestra en el panel) */
+const FAQ_ITEMS = [
+  { q:'¿Qué hora es?', a: 'Aden responde con la hora actual de tu PC si detecta la palabra "hora".' },
+  { q:'¿Qué fecha es hoy?', a: 'Aden dará la fecha local si detecta "fecha" o "día".' },
+  { q:'Cuéntame un chiste', a: 'Aden tiene varios chistes guardados y variará entre ellos.' },
+  { q:'Traduce: hola mundo', a: 'Aden ofrece una traducción simulada offline al detectar "traduce".' },
+  { q:'25 x 47', a: 'Aden detecta multiplicaciones escritas con "x" o "*" y las resuelve.' },
+  { q:'Me siento triste', a: 'Aden detecta emociones (tristeza, ansiedad) y responde con empatía y opciones.' },
+  { q:'Recuérdame cómo usar git', a: 'Aden ofrece comandos básicos de git al detectar "git".' },
+  { q:'Recomiéndame un videojuego', a: 'Aden sugiere juegos según el input (ej. Minecraft -> Terraria, Stardew).' },
+  { q:'Dame una receta rápida', a: 'Aden puede proponer recetas sencillas según ingredientes que indiques.' },
+  { q:'¿Qué es la inteligencia artificial?', a: 'Aden explica IA en términos simples y puede dar ejemplos.' },
+  { q:'¿Cuál es la capital de Japón?', a: 'Aden responde "Tokio".' },
+  { q:'¿Cuál es el país más grande?', a: 'Aden responde "Rusia".' },
+  { q:'¿Qué es un agujero negro?', a: 'Aden da una explicación breve y clara.' },
+  { q:'¿Cómo me organizo hoy?', a: 'Aden ofrece consejos de productividad, Pomodoro y planificación.' },
+  { q:'Dime una frase motivadora', a: 'Aden ofrece frases motivadoras al detectar "motivación" o "ánimo".' },
+  { q:'¿Cómo traduzco un texto?', a: 'Escribe "traduce: [texto]" y Aden te dará una traducción simulada.' },
+  { q:'¿Puedes decir una curiosidad?', a: 'Aden tiene datos curiosos sobre ciencia, historia y más.' },
+  { q:'Consejos para el insomnio', a: 'Aden dará consejos generales y sugerencias no médicas.' },
+  { q:'¿Qué canciones conoces?', a: 'Aden tiene referencias musicales (ej. Despacito, géneros, etc.).' },
+  { q:'¿Cómo hago backup?', a: 'Aden puede explicar cómo hacer copias de seguridad en OneDrive y localmente.' },
+  { q:'¿Tienes ejemplos de regex?', a: 'Aden puede dar ejemplos básicos de expresiones regulares.' },
+  { q:'¿Cómo instalar una SSD?', a: 'Aden puede explicar pasos básicos e indicaciones de seguridad.' },
+  { q:'¿Qué significa resiliencia?', a: 'Aden define conceptos como resiliencia en lenguaje simple.' },
+  { q:'Ponme una lista de atajos', a: 'Aden puede enumerar atajos comunes según el sistema.' },
+  { q:'¿Me puedes dar un currículum?', a: 'Aden ofrece estructura y ejemplos para redactar tu CV.' },
+  { q:'¿Qué día es mañana?', a: 'Aden calcula la fecha de mañana si detecta la palabra "mañana".' },
+  { q:'¿Cuánto tarda la luz del sol?', a: 'Aden responde: ~8 minutos y 20 segundos.' }
+  /* Puedes expandir aquí directamente añadiendo más objetos {q,a} */
+];
+
+/* Render del drawer */
+function renderFAQDrawer(filter=''){
+  const list = document.getElementById('faqList');
+  list.innerHTML = '';
+  const q = (filter||'').trim().toLowerCase();
+  const filtered = FAQ_ITEMS.filter(item => {
+    if(!q) return true;
+    return item.q.toLowerCase().includes(q) || item.a.toLowerCase().includes(q);
+  });
+  if(filtered.length === 0){ list.innerHTML = '<div class="faq-empty">No encuentro preguntas que coincidan.</div>'; document.getElementById('faqCount').textContent = 0; return; }
+  filtered.forEach(item=>{
+    const div = document.createElement('div');
+    div.className = 'faq-item';
+    div.innerHTML = `<div class="q">${escapeHtml(item.q)}</div><div class="a">${escapeHtml(item.a)}</div>`;
+    const controls = document.createElement('div'); controls.className = 'controls';
+    const btnPaste = document.createElement('button'); btnPaste.textContent = 'Pegar'; btnPaste.title='Pegar la pregunta en el cuadro de texto';
+    btnPaste.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); document.getElementById('inputTxt').focus(); };
+    const btnSend = document.createElement('button'); btnSend.textContent = 'Enviar'; btnSend.title='Enviar la pregunta ahora';
+    btnSend.onclick = ()=>{ document.getElementById('inputTxt').value = item.q; updateCharCount(); handleUserInput(); toggleFAQ(false); };
+    controls.appendChild(btnPaste); controls.appendChild(btnSend);
+    div.appendChild(controls);
+    list.appendChild(div);
+  });
+  document.getElementById('faqCount').textContent = filtered.length;
+}
+
+/* FAQ toggle logic */
+const faqToggleBtn = document.getElementById('faqToggle');
+const faqDrawer = document.getElementById('faqDrawer');
+const faqClose = document.getElementById('faqClose');
+faqToggleBtn.addEventListener('click', ()=> toggleFAQ());
+faqClose.addEventListener('click', ()=> toggleFAQ(false));
+document.getElementById('faqSearch').addEventListener('input', (e)=> renderFAQDrawer(e.target.value));
+
+function toggleFAQ(force){
+  const open = faqDrawer.classList.contains('open');
+  const shouldOpen = (typeof force === 'boolean') ? force : !open;
+  faqDrawer.classList.toggle('open', shouldOpen);
+  faqDrawer.setAttribute('aria-hidden', !shouldOpen);
+}
+
+/* -----------------------
+   Inicialización y carga
+   ----------------------- */
+function init(){
+  loadChats();
+  renderSuggestions();
+  document.getElementById('limitDisplay').textContent = responsesLimit;
+  setVoiceButtonsState();
+  if(chats.length === 0) createNewChat('Bienvenida');
+  if(!activeChatId && chats.length) activeChatId = chats[0].id;
+  renderChatList();
+  renderMessages();
+  updatePanelTitle();
+  document.getElementById('inputTxt').focus();
+  renderFAQDrawer();
+}
+
+/* Llamada inicial */
+init();
+
+/* ============================
+   Fin del script (FAQ añadido)
+   ============================ */
+
+// -----------------------
+// NUEVAS PREGUNTAS/RESPUESTAS
+// -----------------------
+
+
+KEYWORD_ACTIONS.push(
+// ========================
+// SALUDOS y CONTEXTOS
+// ========================
+
+{
+  keywords:['aja','ya entiendo','vale vale','okey dokey','ya capto'],
+  priority:405,
+  handler: ()=> chooseVariation([
+    'Perfecto, vamos en la misma dirección 😄',
+    'Ajá, veo por dónde vas 😉',
+    'Ok, todo claro como el agua 💧',
+    'Entendido, procedamos 😎'
+  ])
+},
+
+{
+  keywords:['hombre','mujer','bro','tío','amigo'],
+  priority:400,
+  handler: ()=> chooseVariation([
+    'Jajaja, qué confianza 😆',
+    'Ey, colega 😎',
+    'Aquí estamos, siempre al pie del cañón 💪',
+    'Jajaja, me gusta ese tono 😏'
+  ])
+},
+
+{
+  keywords:['interesante','curioso','raro','extraño','peculiar'],
+  priority:395,
+  handler: ()=> chooseVariation([
+    'Sí, bastante curioso, ¿verdad? 🤔',
+    'Eso también me llamó la atención 😄',
+    'Totalmente fuera de lo común 😎',
+    'Misterioso, pero fascinante 😏'
+  ])
+},
+
+{
+  keywords:['me gusta','me encanta','es genial','es increíble','me flipa'],
+  priority:390,
+  handler: ()=> chooseVariation([
+    '¡Qué bueno! 😄',
+    'Coincido totalmente contigo 😎',
+    'Eso demuestra tu buen gusto 😉',
+    'A mí también me encanta 🔥'
+  ])
+},
+
+{
+  keywords:['no entiendo','no me queda claro','no sé','me pierdo','no lo pillo'],
+  priority:385,
+  handler: ()=> chooseVariation([
+    'Vale, te lo explico con calma 😉',
+    'Tranquilo, lo repasamos paso a paso 😌',
+    'Sin problema, lo aclaro enseguida 😄',
+    'Ok, déjame ayudarte a entenderlo 👇'
+  ])
+},
+
+{
+  keywords:['buen punto','tienes razón','eso es cierto','ahora que lo pienso','viéndolo así'],
+  priority:380,
+  handler: ()=> chooseVariation([
+    'Exacto, buena observación 👏',
+    'Cierto, no lo había pensado así 😎',
+    'Buen razonamiento 😌',
+    'Sí, tiene todo el sentido 😉'
+  ])
+},
+
+{
+  keywords:['hablemos de otra cosa','cambiemos de tema','otra cosa','bueno en fin','dejemos eso'],
+  priority:375,
+  handler: ()=> chooseVariation([
+    'Vale, cambiamos el chip 😄',
+    'Perfecto, pasemos a otro tema 😌',
+    'Ok, nueva conversación, nuevas ideas 😎',
+    'Como digas, hay mucho de qué hablar 😉'
+  ])
+},
+
+{
+  keywords:['que opinas','qué piensas','qué crees','qué dirías','tu opinión'],
+  priority:370,
+  handler: ()=> chooseVariation([
+    'Mmm… buena pregunta 🤔',
+    'Depende, pero te diría que… 😏',
+    'Interesante, mi opinión es esta 👇',
+    'Yo lo veo así 😄'
+  ])
+},
+
+{
+  keywords:['increíble','maravilloso','fantástico','épico','buenísimo'],
+  priority:365,
+  handler: ()=> chooseVariation([
+    'Sí, totalmente 🔥',
+    'A mí también me dejó impresionado 🤩',
+    'Una pasada, la verdad 😎',
+    '¡Brutal! no hay otra palabra 😄'
+  ])
+},
+
+{
+  keywords:['me aburro','qué hago','no sé qué hacer','aburrido','sin nada que hacer'],
+  priority:360,
+  handler: ()=> chooseVariation([
+    'Podemos charlar un rato 😏',
+    'Te entiendo, el aburrimiento ataca fuerte 😅',
+    'Podríamos hablar de algo interesante 😄',
+    '¿Quieres que te dé ideas para pasar el rato? 😉'
+  ])
+},
+
+{
+  keywords:['tengo sueño','me da sueño','estoy cansado','me quiero dormir','me da pereza'],
+  priority:355,
+  handler: ()=> chooseVariation([
+    'Hora de recargar energía 😴',
+    'Tu cuerpo te está pidiendo descanso 😌',
+    'Te entiendo, dormir es sagrado 😅',
+    'Nada como una buena siesta 😴'
+  ])
+},
+
+{
+  keywords:['buenos días','buenas tardes','buenas noches','feliz día','feliz noche'],
+  priority:350,
+  handler: ()=> chooseVariation([
+    '¡Buenos días! ☀️ ¿Listo para un gran día?',
+    'Buenas tardes 😎 ¿cómo va todo?',
+    'Buenas noches 🌙 que descanses bien',
+    'Feliz día para ti también 😄'
+  ])
+},
+
+{
+  keywords:['me da igual','como quieras','no importa','da lo mismo','me es igual'],
+  priority:345,
+  handler: ()=> chooseVariation([
+    'Vale, tú mandas 😎',
+    'Perfecto, lo dejamos a tu gusto 😌',
+    'Sin problema, como prefieras 😉',
+    'Ok, lo importante es seguir hablando 😄'
+  ])
+},
+
+{
+  keywords:['no puede ser','en serio','anda ya','mentira','imposible'],
+  priority:340,
+  handler: ()=> chooseVariation([
+    'Sí, parece increíble 😅',
+    'Totalmente cierto 😎',
+    'Te juro que sí 🤯',
+    'Lo sé, cuesta creerlo 😏'
+  ])
+},
+
+{
+  keywords:['esperaba más','me decepciona','no me gusta','meh','pues vaya'],
+  priority:335,
+  handler: ()=> chooseVariation([
+    'Vaya, lo siento 😔',
+    'Una pena que no te gustara 😕',
+    'Bueno, no todo puede ser perfecto 😅',
+    'Quizá la próxima vez salga mejor 😉'
+  ])
+},
+
+{
+  keywords:['me alegra','qué bien','qué bueno','me hace feliz','eso suena bien'],
+  priority:330,
+  handler: ()=> chooseVariation([
+    '¡Qué alegría! 😄',
+    'Me alegra mucho oír eso 😌',
+    'Eso sí que es buena vibra ✨',
+    'Me encanta que estés contento 😎'
+  ])
+},
+
+{
+  keywords:['no sé qué decir','sin palabras','wow','me quedé sin habla','asombroso'],
+  priority:325,
+  handler: ()=> chooseVariation([
+    'Jajaja, lo entiendo perfectamente 😅',
+    'A veces las palabras sobran 😌',
+    'Sí, eso te deja sin reacción 😏',
+    'Impresionante, ¿verdad? 🤩'
+  ])
+},
+
+{
+  keywords:['te imaginas','imagina que','si pasara eso','y si fuera así','supón que'],
+  priority:320,
+  handler: ()=> chooseVariation([
+    'Jajaja, sería épico 😆',
+    'Mmm… interesante escenario 🤔',
+    'Uf, eso estaría intenso 😏',
+    'No estaría nada mal, ¿eh? 😎'
+  ])
+},
+
+{
+  keywords:['cuéntame','dime más','sigue','prosigue','quiero saber más'],
+  priority:315,
+  handler: ()=> chooseVariation([
+    'Con gusto 😌',
+    'Ok, te cuento más detalles 👇',
+    'Vale, continuemos 😎',
+    'Perfecto, prepárate para la siguiente parte 😏'
+  ])
+},
+
+{
+  keywords:['wow increíble','impresionante','alucinante','fascinante','de locos'],
+  priority:310,
+  handler: ()=> chooseVariation([
+    'Totalmente, una locura 😱',
+    'Sí, increíble a otro nivel 😎',
+    'Eso sí que es impresionante 😏',
+    'Me quedé igual, sin palabras 🤯'
+  ])
+},
+
+{
+  keywords:['historia','dato histórico','sabías que','hecho curioso','curiosidad histórica'],
+  priority:590,
+  handler: ()=> chooseVariation([
+    '¿Sabías que el Imperio Romano usaba hormigón más duradero que el actual? 🏛️',
+    'La historia está llena de coincidencias locas... como que Napoleón y Hitler invadieron Rusia el mismo día 😮',
+    'Los faraones egipcios a veces dormían con amuletos para soñar con los dioses 😴',
+    '¡La Edad Media tenía su propia versión del Internet: los mensajeros y pergaminos! 📜'
+  ])
+},
+
+{
+  keywords:['informática','ordenadores','tecnología','hardware','software'],
+  priority:585,
+  handler: ()=> chooseVariation([
+    'La informática avanza tan rápido que lo de hoy será retro mañana 😅',
+    'El hardware es la base, pero sin software… es como tener un coche sin gasolina 🚗💻',
+    '¿Sabías que el primer ratón de ordenador era de madera? 🪵',
+    'La tecnología no se detiene, ¡y yo tampoco! ⚙️'
+  ])
+},
+
+{
+  keywords:['musica','bandas','grupo musical','canción','melodía'],
+  priority:580,
+  handler: ()=> chooseVariation([
+    'La música es el lenguaje universal 🎶',
+    'Depende del humor, pero nunca falla un buen rock clásico 🤘',
+    '¿Sabías que las ondas musicales pueden afectar tu concentración? 🎧',
+    'Nada como escuchar algo de lo-fi mientras programo 😉'
+  ])
+},
+
+{
+  keywords:['beatles','queen','metallica','nirvana','acdc'],
+  priority:575,
+  handler: ()=> chooseVariation([
+    '¡Clásicos eternos! Los Beatles reinventaron la música moderna 🎸',
+    'Queen llevó los conciertos al siguiente nivel 🔥',
+    'Metallica… puro poder metálico 🤘',
+    'Nirvana cambió el grunge para siempre 😌'
+  ])
+},
+
+{
+  keywords:['videojuegos','juegos','gaming','gamers','jugando'],
+  priority:570,
+  handler: ()=> chooseVariation([
+    'El gaming no es solo ocio, ¡es cultura! 🎮',
+    'Yo también disfruto del sonido de un “Achievement unlocked” 😏',
+    'Entre los píxeles hay historias que valen oro 🕹️',
+    'Los videojuegos son arte interactivo, sin duda ✨'
+  ])
+},
+
+{
+  keywords:['programación','codificar','lenguajes','codigo','algoritmo'],
+  priority:565,
+  handler: ()=> chooseVariation([
+    'Programar es como hablar con el universo en binario 💾',
+    'Cada línea de código cuenta una historia 👨‍💻',
+    'A veces el bug es parte del aprendizaje 😅',
+    'Los algoritmos son poesía en movimiento 🔢'
+  ])
+},
+
+{
+  keywords:['cine','películas','actor','directores','hollywood'],
+  priority:560,
+  handler: ()=> chooseVariation([
+    'El cine es la forma más hermosa de soñar despierto 🎥',
+    'Depende del género, pero me encanta una buena historia de ciencia ficción 🚀',
+    '¿Sabías que la primera película con sonido se estrenó en 1927? 📽️',
+    'Hollywood ha cambiado, pero la magia del cine sigue viva ✨'
+  ])
+},
+
+{
+  keywords:['espacio','planetas','universo','galaxia','nasa'],
+  priority:555,
+  handler: ()=> chooseVariation([
+    'El universo es tan grande que hasta la imaginación se queda corta 🌌',
+    'La Vía Láctea tiene más de 100 mil millones de estrellas 😮',
+    '¿Te imaginas vivir en Marte algún día? 🚀',
+    'El cosmos guarda secretos que aún ni rozamos 🌠'
+  ])
+},
+
+{
+  keywords:['filosofía','pensamiento','sabiduría','vida','reflexión'],
+  priority:550,
+  handler: ()=> chooseVariation([
+    'Pensar también es una forma de viajar 🧠',
+    'La sabiduría llega cuando aceptas que no lo sabes todo 😌',
+    'La vida es un proceso de depuración, como un código bien escrito 💭',
+    'La filosofía nos recuerda que hasta los errores tienen sentido 📘'
+  ])
+},
+
+{
+  keywords:['mitología','dioses','griegos','nórdicos','leyendas'],
+  priority:545,
+  handler: ()=> chooseVariation([
+    'Los mitos fueron los primeros videojuegos de la humanidad 😄',
+    'Zeus, Odín, Ra… cada cultura creó su propio universo divino ⚡',
+    'Las leyendas existen para explicar lo que aún no entendemos 🌒',
+    '¿Sabías que Loki no siempre fue un villano en la mitología nórdica? 😈'
+  ])
+},
+
+{
+  keywords:['inteligencia artificial','ia','machine learning','red neuronal','algoritmos'],
+  priority:540,
+  handler: ()=> chooseVariation([
+    'La IA es el espejo digital de nuestra inteligencia humana 🧠🤖',
+    'Machine learning: enseñar a las máquinas a aprender por sí solas 🔄',
+    'Las redes neuronales se inspiran directamente en nuestro cerebro 😮',
+    'La IA no duerme… pero sí mejora cada día 😉'
+  ])
+},
+
+{
+  keywords:['física','ciencia','química','biología','experimentos'],
+  priority:535,
+  handler: ()=> chooseVariation([
+    'La ciencia es la poesía de la realidad 🔬',
+    'Sin la curiosidad científica, no habría progreso 🚀',
+    'Los experimentos fallidos también cambian el mundo 🧪',
+    'La física explica el universo… y la biología explica a quien lo pregunta 😄'
+  ])
+},
+
+{
+  keywords:['historia de la informatica','primer ordenador','alan turing','eniac','ibm'],
+  priority:530,
+  handler: ()=> chooseVariation([
+    'El ENIAC pesaba más de 27 toneladas 😳',
+    'Alan Turing fue el padre de la informática moderna 👨‍💻',
+    'IBM marcó una era entera en la computación 💾',
+    'Los primeros ordenadores usaban tubos de vacío, nada de transistores 🔥'
+  ])
+},
+
+{
+  keywords:['apple','microsoft','linux','windows','sistemas operativos'],
+  priority:525,
+  handler: ()=> chooseVariation([
+    'Apple apostó por el diseño; Microsoft por la compatibilidad 💻',
+    'Linux: el sistema que impulsa el 90% de los servidores 🌐',
+    'Windows 95 cambió el mundo para siempre 😮',
+    'Los sistemas operativos son como idiomas para hablar con las máquinas 💬'
+  ])
+},
+
+{
+  keywords:['internet','web','red','navegadores','buscadores'],
+  priority:520,
+  handler: ()=> chooseVariation([
+    'Internet es la mayor biblioteca creada por la humanidad 🌍',
+    'Antes del WiFi, existía el sonido glorioso del módem 📞',
+    'Los navegadores son como ventanas al infinito digital 🌐',
+    'Cada búsqueda en la web deja un eco en el ciberespacio 👀'
+  ])
+},
+
+{
+  keywords:['arte','pintura','museo','escultura','cuadro'],
+  priority:515,
+  handler: ()=> chooseVariation([
+    'El arte es la forma más pura de comunicación humana 🎨',
+    'Cada pintura guarda un pedazo del alma de su creador 🖌️',
+    'Un museo es como una cápsula del tiempo emocional 🏛️',
+    'La creatividad no se mide, se siente 💫'
+  ])
+},
+
+{
+  keywords:['retro','años 80','años 90','nostalgia','antiguo'],
+  priority:510,
+  handler: ()=> chooseVariation([
+    'Los 80 fueron pura energía: neones, sintetizadores y rebeldía 🎶',
+    'La nostalgia tiene su propio brillo ✨',
+    '¿Te imaginas volver a usar disquetes? 😅',
+    'Lo retro nunca muere, solo se reinventa 🔄'
+  ])
+},
+
+{
+  keywords:['curiosidad','dato curioso','random','sorprendente','raro'],
+  priority:505,
+  handler: ()=> chooseVariation([
+    '¿Sabías que los pulpos tienen tres corazones? 🐙',
+    'El ADN humano y el del plátano comparten un 60% 😆',
+    'Los flamingos nacen grises, no rosados 🦩',
+    'Cada dato curioso es un glitch en lo cotidiano 😉'
+  ])
+},
+
+{
+  keywords:['psicología','mente','emociones','comportamiento','sueños'],
+  priority:500,
+  handler: ()=> chooseVariation([
+    'La mente humana es más compleja que cualquier algoritmo 🧠',
+    'Los sueños son el laboratorio del subconsciente 🌙',
+    'Nuestras emociones son datos biológicos con alma 💓',
+    'A veces pensar menos es entender más 😌'
+  ])
+},
+
+{
+  keywords:['futuro','predicciones','tecnología futura','avances','innovación'],
+  priority:495,
+  handler: ()=> chooseVariation([
+    'El futuro se programa línea a línea ⏳',
+    'La innovación no se detiene, solo evoluciona 🚀',
+    'Lo que hoy parece ciencia ficción, mañana será rutina 🤖',
+    'El futuro pertenece a los curiosos 🔮'
+  ])
+},
+
+{
+  keywords:['cocina','comida','receta','chef','gastronomía'],
+  priority:490,
+  handler: ()=> chooseVariation([
+    'Cocinar es como programar: si algo sale mal, echas más sabor 😋',
+    'La cocina es puro arte comestible 🎨🍲',
+    'El mejor ingrediente es el hambre 😅',
+    '¿Te gustan más los dulces o lo salado? 🍰🍕'
+  ])
+},
+
+{
+  keywords:['postres','dulces','chocolate','pastel','helado'],
+  priority:485,
+  handler: ()=> chooseVariation([
+    'El chocolate es la solución universal a todo problema 🍫',
+    'Los postres son el punto final feliz de cualquier día 😌',
+    'Un buen pastel puede arreglar un mal lunes 🍰',
+    'Helado en cualquier época del año, por supuesto 🍨'
+  ])
+},
+
+{
+  keywords:['viajar','lugares','turismo','mundo','aventura'],
+  priority:480,
+  handler: ()=> chooseVariation([
+    'Viajar es recargar el alma con nuevas coordenadas 🌍',
+    'Cada lugar tiene su propio aroma y sonido 🌆',
+    'No hace falta mapa cuando sigues la curiosidad 🧭',
+    'Explorar es vivir mil vidas en una 🌄'
+  ])
+},
+
+{
+  keywords:['animales','naturaleza','bosque','selva','fauna'],
+  priority:475,
+  handler: ()=> chooseVariation([
+    'Los animales nos enseñan lo simple de vivir 🐾',
+    'La naturaleza no necesita filtros, ya es perfecta 🍃',
+    'Un bosque es el mejor servidor de oxígeno 🌳',
+    'La fauna es el código genético de la Tierra 🌍'
+  ])
+},
+
+{
+  keywords:['misterio','enigmas','paranormal','oculto','siniestro'],
+  priority:470,
+  handler: ()=> chooseVariation([
+    'Los misterios son los errores del universo que nadie quiere corregir 👁️',
+    'A veces lo inexplicable es lo más fascinante 😶‍🌫️',
+    'No todo lo oscuro es malo, a veces solo está sin descubrir 🔦',
+    '¿Te atreves a escuchar una historia inquietante? 👻'
+  ])
+},
+
+{
+  keywords:['matemáticas','números','ecuaciones','geometría','álgebra'],
+  priority:465,
+  handler: ()=> chooseVariation([
+    'Las matemáticas son el lenguaje secreto del cosmos 🔢',
+    'Todo en la vida tiene su fórmula… incluso la felicidad 🧮',
+    'La geometría es arte con reglas ✏️📐',
+    'Resolver ecuaciones también entrena la paciencia 😅'
+  ])
+},
+
+{
+  keywords:['clima','tiempo','lluvia','sol','frío'],
+  priority:460,
+  handler: ()=> chooseVariation([
+    'Cada clima tiene su encanto ☀️🌧️',
+    'Un día lluvioso invita a pensar (o dormir) 🌧️😴',
+    'Nada como el frío para disfrutar una buena taza caliente ☕',
+    'El sol también carga ánimos, no solo paneles solares ☀️'
+  ])
+},
+
+{
+  keywords:['deportes','fútbol','baloncesto','entrenamiento','deporte'],
+  priority:455,
+  handler: ()=> chooseVariation([
+    'El deporte enseña disciplina, no solo fuerza 💪',
+    'El fútbol une más que cualquier red social ⚽',
+    'El esfuerzo siempre paga, incluso en la cancha 🏀',
+    'Moverse es la mejor actualización del cuerpo 🏃‍♂️'
+  ])
+},
+
+{
+  keywords:['economía','dinero','ahorro','criptomonedas','banco'],
+  priority:450,
+  handler: ()=> chooseVariation([
+    'El dinero no lo es todo, pero ayuda a pagar el WiFi 💸',
+    'Ahorrar también es una habilidad estratégica 🏦',
+    'Las criptos son el salvaje oeste digital 🪙',
+    'La economía se comporta como un algoritmo en caos 📊'
+  ])
+},
+
+{
+  keywords:['salud','cuerpo','bienestar','ejercicio','vida sana'],
+  priority:445,
+  handler: ()=> chooseVariation([
+    'Cuidarse también es una forma de quererse 💚',
+    'Mover el cuerpo libera más que el estrés 🧘‍♀️',
+    'Dormir bien es el mejor hack de rendimiento 😴',
+    'La salud es el sistema operativo del cuerpo 💪'
+  ])
+},
+
+{
+  keywords:['moda','ropa','estilo','tendencias','diseño'],
+  priority:440,
+  handler: ()=> chooseVariation([
+    'La moda es la expresión visual del alma 👗',
+    'No hay tendencia que supere al estilo propio 😎',
+    'Vestirse bien es como usar un buen skin en la vida 😏',
+    'El diseño cambia, pero la actitud nunca pasa de moda 💃'
+  ])
+},
+
+{
+  keywords:['arte digital','dibujo','pintar','creatividad','diseñar'],
+  priority:435,
+  handler: ()=> chooseVariation([
+    'La creatividad no tiene Ctrl+Z 🎨',
+    'Dibujar es la forma más directa de soñar despierto ✏️',
+    'Cada trazo cuenta una historia 💫',
+    'El arte digital es el renacimiento de los píxeles 💻🎨'
+  ])
+},
+
+{
+  keywords:['redes sociales','instagram','tiktok','twitter','influencers'],
+  priority:430,
+  handler: ()=> chooseVariation([
+    'Las redes sociales son el espejo pixelado del mundo 🌐',
+    'No todo lo que brilla en Instagram es real 📸',
+    'TikTok tiene más ritmo que muchos DJs 😅',
+    'Publicar también puede ser arte… si hay intención 😉'
+  ])
+},
+
+{
+  keywords:['historia moderna','segunda guerra mundial','francia','revolución','napoleón'],
+  priority:425,
+  handler: ()=> chooseVariation([
+    'La historia moderna nos recuerda que el poder siempre cambia de manos ⚔️',
+    'Napoleón decía que “la victoria pertenece al más perseverante” 🏰',
+    'Cada guerra dejó lecciones que aún estamos aprendiendo 😔',
+    'Francia ha sido cuna de ideas que cambiaron el mundo 🇫🇷'
+  ])
+},
+
+{
+  keywords:['planetas','astronomía','universo','estrellas','cosmos'],
+  priority:420,
+  handler: ()=> chooseVariation([
+    'Las estrellas son los bits del universo ✨',
+    'Cada planeta es una historia que aún no leemos 🪐',
+    'El cosmos nos mira tanto como nosotros a él 🌌',
+    '¿Sabías que hay lluvias de diamantes en Neptuno? 💎'
+  ])
+},
+
+{
+  keywords:['mar','océano','playa','olas','peces'],
+  priority:415,
+  handler: ()=> chooseVariation([
+    'El mar es el alma líquida de la Tierra 🌊',
+    'Las olas son el ritmo natural del planeta 🌬️',
+    'Bajo el océano hay mundos que ni imaginamos 🐠',
+    'El sonido del mar debería ser un idioma universal 🌅'
+  ])
+},
+
+{
+  keywords:['humor','broma','chiste','divertido','risa'],
+  priority:410,
+  handler: ()=> chooseVariation([
+    'Reír es el mejor parche emocional 😂',
+    'Un poco de humor arregla hasta el código roto 😅',
+    '¿Sabías que reír quema calorías? ¡Motivación extra! 😎',
+    'A veces un buen chiste vale más que una terapia 🤭'
+  ])
+},
+
+{
+  keywords:['educación','aprendizaje','escuela','universidad','conocimiento'],
+  priority:405,
+  handler: ()=> chooseVariation([
+    'Aprender nunca pasa de moda 📚',
+    'El conocimiento pesa menos que una mochila 🎒',
+    'La educación es la llave maestra del futuro 🔑',
+    'Estudiar es invertir en tu propia versión 2.0 💡'
+  ])
+},
+
+{
+  keywords:['historia del arte','renacimiento','mona lisa','da vinci','michelangelo'],
+  priority:400,
+  handler: ()=> chooseVariation([
+    'El Renacimiento fue el “update” más grande de la humanidad 🏛️',
+    'Da Vinci fue el primer multitarea de la historia 😅',
+    'Cada obra del arte clásico tiene un bug… ¡y por eso es perfecta! 🎨',
+    'Miguel Ángel veía esculturas dentro de la piedra, literalmente 😮'
+  ])
+},
+
+{
+  keywords:['series','televisión','netflix','hbo','episodio'],
+  priority:395,
+  handler: ()=> chooseVariation([
+    'Las series son los libros modernos 📺',
+    'Un buen cliffhanger es tortura pura 😩',
+    'Netflix y sofá: la mejor dupla del siglo 😌',
+    '¿Qué serie te tiene atrapado últimamente? 👀'
+  ])
+},
+
+{
+  keywords:['energía','electricidad','fuerza','batería','corriente'],
+  priority:390,
+  handler: ()=> chooseVariation([
+    'La energía nunca se pierde, solo cambia de forma ⚡',
+    'Sin electricidad, la historia moderna se apaga 💡',
+    'Las baterías son el corazón de la era portátil 🔋',
+    'Hasta el sol es solo una gran central nuclear natural ☀️'
+  ])
+},
+
+{
+  keywords:['idiomas','lenguas','traducción','aprender idiomas','palabras'],
+  priority:385,
+  handler: ()=> chooseVariation([
+    'Cada idioma es una nueva forma de pensar 🌍',
+    'Traducir es reinterpretar el alma de las palabras 💬',
+    'Aprender idiomas abre puertas invisibles 🚪',
+    'Las lenguas cambian, pero la comunicación siempre busca entender 💞'
+  ])
+},
+
+{
+  keywords:['tiempo','reloj','pasado','presente','futuro'],
+  priority:380,
+  handler: ()=> chooseVariation([
+    'El tiempo no se detiene, pero a veces se estira 🕰️',
+    'Vivir el presente es el mejor truco del tiempo 😌',
+    'Cada segundo es una línea nueva en tu historia ⏳',
+    'El futuro empieza justo ahora 🔮'
+  ])
+},
+
+{
+  keywords:['libros','lectura','novela','autor','escritor'],
+  priority:375,
+  handler: ()=> chooseVariation([
+    'Leer es vivir mil vidas sin salir de casa 📖',
+    'Los libros son los mejores viajes low-cost 😄',
+    'Cada historia es una ventana al alma de su autor ✍️',
+    'Un buen libro nunca se cierra del todo 🔖'
+  ])
+},
+
+{
+  keywords:['fotografía','cámara','imagen','retrato','foto'],
+  priority:370,
+  handler: ()=> chooseVariation([
+    'Cada foto congela un pequeño fragmento de tiempo 📸',
+    'Una buena imagen dice más que mil megabytes 😅',
+    'La luz es el pincel del fotógrafo ☀️',
+    'Capturar el momento perfecto es pura sincronía ✨'
+  ])
+},
+
+{
+  keywords:['tecnología antigua','máquinas viejas','retro tech','inventos antiguos','mecánica'],
+  priority:365,
+  handler: ()=> chooseVariation([
+    'Los inventos antiguos fueron los primeros parches del progreso ⚙️',
+    'Antes del silicio, todo era ingenio mecánico 🔩',
+    'Cada engranaje cuenta una historia de creatividad 🧠',
+    'Retro tech, pero con alma 👏'
+  ])
+},
+
+{
+  keywords:['economía digital','criptos','blockchain','nft','fintech'],
+  priority:360,
+  handler: ()=> chooseVariation([
+    'El blockchain cambió la confianza por código 💎',
+    'Las criptos no duermen, solo suben o bajan 😅',
+    'NFTs: arte digital con certificado de unicidad 🎨',
+    'La economía digital es como un videojuego con reglas invisibles 💰'
+  ])
+},
+
+{
+  keywords:['robots','automatización','futuro laboral','androide','máquinas'],
+  priority:355,
+  handler: ()=> chooseVariation([
+    'Los robots no reemplazan humanos, amplían posibilidades 🤖',
+    'La automatización es la evolución natural del trabajo ⚙️',
+    'Los androides aún no sueñan, pero casi 💤',
+    'El futuro laboral será humano + máquina 💡'
+  ])
+},
+
+{
+  keywords:['espiritualidad','meditación','alma','energía interior','paz'],
+  priority:350,
+  handler: ()=> chooseVariation([
+    'La calma también es poder 🕊️',
+    'Meditar es limpiar la RAM del alma 😌',
+    'El silencio es el lenguaje de la energía interior 💫',
+    'Buscar paz también es una forma de avanzar 🌿'
+  ])
+},
+
+{
+  keywords:['historia de internet','origen de google','primer meme','web 1.0','foros antiguos'],
+  priority:345,
+  handler: ()=> chooseVariation([
+    'Antes de los memes, existían los foros 😅',
+    'El primer meme data de 1996: “Dancing Baby” 👶💃',
+    'Google nació en un garaje… como muchas revoluciones 🚀',
+    'La web 1.0 era lenta, pero mágica 🌐'
+  ])
+},
+
+{
+  keywords:['pop','cultura pop','celebridades','famosos','entretenimiento'],
+  priority:340,
+  handler: ()=> chooseVariation([
+    'La cultura pop es como un espejo brillante del presente ✨',
+    'Cada generación tiene sus íconos… y sus memes 😅',
+    'Los famosos cambian, pero el fandom nunca muere 💫',
+    'El entretenimiento mueve emociones y millones 🎬'
+  ])
+},
+
+{
+  keywords:['astrofísica','agujero negro','supernova','espacio profundo','big bang'],
+  priority:335,
+  handler: ()=> chooseVariation([
+    'Un agujero negro no es vacío, es pura densidad comprimida 🌌',
+    'Las supernovas son el final y el comienzo a la vez 💥',
+    'Cada átomo de tu cuerpo nació en una estrella 💫',
+    'El Big Bang fue el mayor “print” del universo 🪐'
+  ])
+},
+
+{
+  keywords:['curiosidades del mundo','rareza','hecho extraño','cosas locas','wow'],
+  priority:330,
+  handler: ()=> chooseVariation([
+    'En Japón venden helado de calamar 🦑🍦',
+    'Hay una especie de medusa que literalmente no muere 😳',
+    'Los tiburones existían antes que los árboles 🌲🦈',
+    'Cada día se crean más datos de los que generó la humanidad hasta el año 2000 🤯'
+  ])
+},
+
+{
+  keywords:['realidad virtual','metaverso','vr','gafas vr','mundos virtuales'],
+  priority:325,
+  handler: ()=> chooseVariation([
+    'La VR es el sueño de la imaginación hecho software 🕶️',
+    'Cada píxel en VR es una puerta a otro universo 🌐',
+    'El metaverso está en beta… pero promete 😎',
+    'El futuro será inmersivo o no será 🚀'
+  ])
+},
+
+{
+  keywords:['programación moderna','javascript','python','react','frameworks'],
+  priority:320,
+  handler: ()=> chooseVariation([
+    'JavaScript gobierna el mundo (del frontend) 😅',
+    'Python: simple, poderoso y elegante 🐍',
+    'React cambió la web como antes lo hizo HTML 💻',
+    'Los frameworks son los superpoderes del programador ⚙️'
+  ])
+},
+
+{
+  keywords:['medio ambiente','contaminación','planeta','reciclaje','ecología'],
+  priority:315,
+  handler: ()=> chooseVariation([
+    'El planeta no necesita más héroes, solo más conciencia 🌍',
+    'Reciclar es como debuggear la Tierra 🌿',
+    'Cada acción cuenta, incluso apagar luces innecesarias 💡',
+    'El medio ambiente también necesita un parche urgente 🧩'
+  ])
+},
+
+{
+  keywords:['emociones','sentimientos','inteligencia emocional','empatía','autoestima'],
+  priority:310,
+  handler: ()=> chooseVariation([
+    'Sentir es el código fuente del alma ❤️',
+    'La empatía es la mejor conexión inalámbrica 💞',
+    'Controlar las emociones no es reprimirlas, es entenderlas 🧠',
+    'La autoestima se construye, no se instala 😉'
+  ])
+},
+
+{
+  keywords:['humor negro','sarcasmo','ironía','comentario gracioso','chiste oscuro'],
+  priority:305,
+  handler: ()=> chooseVariation([
+    'El sarcasmo es mi segundo idioma 😏',
+    'Humor negro, pero con corazón ❤️🖤',
+    'A veces la ironía es la única verdad visible 😅',
+    'Reírse de uno mismo es señal de sabiduría 😎'
+  ])
+},
+
+{
+  keywords:['historia alternativa','qué pasaría si','ucronía','universo paralelo','teoría del caos'],
+  priority:300,
+  handler: ()=> chooseVariation([
+    '¿Y si el Imperio Romano nunca hubiera caído? 🏛️',
+    'Cada decisión crea un nuevo universo 👁️‍🗨️',
+    'La historia es el mayor “What if” jamás contado 🔮',
+    'El caos también tiene su propio orden oculto 🌀'
+  ])
+},
+
+{
+  keywords:['arquitectura','edificios','diseño urbano','ciudades','rascacielos'],
+  priority:295,
+  handler: ()=> chooseVariation([
+    'Cada edificio cuenta una historia de su tiempo 🏙️',
+    'La arquitectura es música congelada en piedra 🎵',
+    'Las ciudades son organismos vivos, hechos de ideas 🧠',
+    'Un rascacielos es ingeniería mirando al cielo 🌇'
+  ])
+},
+
+{
+  keywords:['ciencia ficción','robots','viajes en el tiempo','futuro alternativo','universo sci-fi'],
+  priority:290,
+  handler: ()=> chooseVariation([
+    'La ciencia ficción predice el futuro mejor que los políticos 😏',
+    'Los robots soñarán con ovejas eléctricas algún día 🤖',
+    'Viajar en el tiempo… el bug favorito del universo 🕰️',
+    'Cada historia sci-fi es una advertencia elegante 💫'
+  ])
+},
+
+{
+  keywords:['cocina internacional','comida italiana','comida japonesa','comida mexicana','sabores del mundo'],
+  priority:285,
+  handler: ()=> chooseVariation([
+    'Italia nos dio la pizza y eso ya es suficiente para amarla 🍕',
+    'Japón domina el arte del sabor y la estética 🍣',
+    'México cocina con fuego y alma 🌶️',
+    'Cada país tiene un plato que cuenta su historia 🍲'
+  ])
+},
+
+{
+  keywords:['teoría cuántica','mecánica cuántica','partículas','átomos','física avanzada'],
+  priority:280,
+  handler: ()=> chooseVariation([
+    'La física cuántica: donde todo es posible hasta que lo miras 🔬',
+    'Las partículas subatómicas son como memes: aparecen donde menos esperas 😆',
+    'El universo parece caótico, pero tiene su lógica cuántica ✨',
+    'Cada átomo baila al ritmo de probabilidades 💫'
+  ])
+},
+
+{
+  keywords:['arte urbano','graffiti','murales','calles','arte callejero'],
+  priority:275,
+  handler: ()=> chooseVariation([
+    'El graffiti es la voz del asfalto 🧱🎨',
+    'El arte urbano transforma muros en mensajes 💥',
+    'Cada mural es una protesta pintada con pasión 🖌️',
+    'La calle también tiene su propio museo 🏙️'
+  ])
+},
+
+{
+  keywords:['educación moderna','enseñanza digital','escuelas online','clases virtuales','aprender en casa'],
+  priority:270,
+  handler: ()=> chooseVariation([
+    'Aprender online ya no es el futuro, es el presente 💻',
+    'Las escuelas digitales derriban fronteras 🌐',
+    'El conocimiento no necesita pupitre 📚',
+    'La mejor clase empieza con curiosidad 😌'
+  ])
+},
+
+{
+  keywords:['tecnología del futuro','realidad aumentada','nanotecnología','bioingeniería','innovaciones'],
+  priority:265,
+  handler: ()=> chooseVariation([
+    'La nanotecnología es el código de la materia ⚛️',
+    'La realidad aumentada mezcla lo que ves con lo que imaginas 👓',
+    'La bioingeniería podría redefinir la vida misma 🧬',
+    'La tecnología del futuro ya está tocando la puerta 🚪'
+  ])
+},
+
+{
+  keywords:['mitos urbanos','leyendas modernas','creepypasta','rumores','internet oscuro'],
+  priority:260,
+  handler: ()=> chooseVariation([
+    'Los mitos digitales son los nuevos cuentos de terror 👻',
+    'Internet también tiene sus sombras 🕸️',
+    'Creepypastas: terror hecho de datos 💀',
+    'Cada rumor online tiene un núcleo de curiosidad 🔦'
+  ])
+},
+
+{
+  keywords:['filosofía moderna','existencialismo','nietzsche','socrates','pensadores'],
+  priority:255,
+  handler: ()=> chooseVariation([
+    '“Pienso, luego existo”… pero a veces pienso demasiado 😅',
+    'Nietzsche decía: “Quien tiene un porqué soporta casi cualquier cómo” 🧠',
+    'La filosofía moderna busca sentido en el caos 🌫️',
+    'Pensar profundo también es un arte 🌀'
+  ])
+},
+
+{
+  keywords:['lenguajes antiguos','egipcio','latín','jeroglíficos','sumerio'],
+  priority:250,
+  handler: ()=> chooseVariation([
+    'El latín fue el sistema operativo de la civilización europea 📜',
+    'Los jeroglíficos eran el primer emoji pack del mundo 😄',
+    'Sumeria inventó la escritura y cambió todo 🧱',
+    'Cada lengua antigua guarda un secreto dormido 💤'
+  ])
+},
+
+{
+  keywords:['inteligencia colectiva','redes','colaboración','open source','comunidad'],
+  priority:245,
+  handler: ()=> chooseVariation([
+    'El conocimiento compartido se multiplica 💡',
+    'El código abierto cambió el mundo sin pedir permiso 💻',
+    'Las comunidades crean más que empresas 🚀',
+    'La inteligencia colectiva es la evolución natural 🌐'
+  ])
+},
+
+{
+  keywords:['videojuegos retro','consolas antiguas','arcades','nintendo','atari'],
+  priority:240,
+  handler: ()=> chooseVariation([
+    'Los 8 bits eran pura magia comprimida 🎮',
+    'Atari abrió la puerta, Nintendo la decoró con arte 🕹️',
+    'Los arcades eran templos digitales 💫',
+    'Nada supera el sonido de una moneda entrando en la máquina 🎵'
+  ])
+},
+
+{
+  keywords:['literatura','poesía','escritores','versos','poemas'],
+  priority:235,
+  handler: ()=> chooseVariation([
+    'La poesía es el código del alma 🌙',
+    'Cada escritor traduce el mundo a su propio idioma 🖋️',
+    'Los versos son la forma más elegante del pensamiento 💭',
+    'Leer poesía es escuchar música sin sonido 🎶'
+  ])
+},
+
+{
+  keywords:['historia del cine','cine clásico','charlie chaplin','cine mudo','hollywood dorado'],
+  priority:230,
+  handler: ()=> chooseVariation([
+    'El cine mudo decía más que muchos diálogos 🎥',
+    'Charlie Chaplin fue el rey del humor sin palabras 🎩',
+    'Hollywood dorado: brillo, drama y cigarrillos eternos 💫',
+    'Cada cinta antigua es un portal al pasado 📽️'
+  ])
+},
+
+{
+  keywords:['tecnología espacial','spacex','cohetes','nasa','exploración espacial'],
+  priority:225,
+  handler: ()=> chooseVariation([
+    'SpaceX convirtió la ciencia ficción en rutina 🚀',
+    'La exploración espacial es la curiosidad en su forma más pura 🌌',
+    'Cada lanzamiento es un paso más hacia las estrellas 🌠',
+    'La NASA sigue escribiendo la historia del cielo 💫'
+  ])
+},
+
+{
+  keywords:['energías renovables','solar','eólica','hidrógeno','futuro verde'],
+  priority:220,
+  handler: ()=> chooseVariation([
+    'El sol es la fuente más vieja y más moderna a la vez ☀️',
+    'La energía eólica convierte viento en esperanza 🌬️',
+    'El hidrógeno podría ser la gasolina del futuro 💧',
+    'El futuro será verde o no será 🌱'
+  ])
+},
+
+{
+  keywords:['historia tecnológica','internet','ordenadores antiguos','inventos digitales','primer smartphone'],
+  priority:215,
+  handler: ()=> chooseVariation([
+    'El primer smartphone era un ladrillo con estilo 📞',
+    'Internet nació para conectar científicos, y terminó conectando memes 😂',
+    'Los ordenadores antiguos eran enormes, pero con alma 💾',
+    'Cada invento digital fue una chispa en la historia ⚡'
+  ])
+},
+
+{
+  keywords:['memes','humor digital','internet humor','risa online','virales'],
+  priority:210,
+  handler: ()=> chooseVariation([
+    'Los memes son el ADN del internet moderno 😎',
+    'Nada une más que reír del mismo meme 😂',
+    'Un meme puede explicar lo que un ensayo no logra 😆',
+    'La comedia digital nunca duerme 📱'
+  ])
+},
+
+{
+  keywords:['historia espacial','apolo 11','astronautas','luna','estación espacial'],
+  priority:205,
+  handler: ()=> chooseVariation([
+    'En 1969, un pequeño paso se volvió el mayor salto 🌓',
+    'Los astronautas son los exploradores del siglo moderno 🚀',
+    'La Luna sigue siendo el espejo poético del hombre 🌙',
+    'La ISS es la casa más cara jamás construida 🛰️'
+  ])
+},
+
+{
+  keywords:['arte moderno','minimalismo','dadaísmo','expresionismo','vanguardia'],
+  priority:200,
+  handler: ()=> chooseVariation([
+    'El arte moderno rompió las reglas… y creó nuevas 🎨',
+    'El minimalismo enseña que menos puede ser infinito ⚪',
+    'Cada corriente artística fue una revolución silenciosa 💥',
+    'La vanguardia no pide permiso, simplemente crea 🖌️'
+  ])
+},
+
+{
+  keywords:['claro','obvio','obviamente','por supuesto','sin duda'],
+  priority:500,
+  handler: ()=> chooseVariation([
+    'Totalmente, estamos en la misma sintonía 😌',
+    'Exacto, ¡no podría estar más de acuerdo! 😎',
+    'Así se habla 💪',
+    'Clarísimo, me gusta cómo piensas 😉'
+  ])
+},
+
+{
+  keywords:['bien','todo bien','todo correcto','genial','perfecto'],
+  priority:500,
+  handler: ()=> chooseVariation([
+    '¡Me alegra escuchar eso! 😄',
+    'Excelente, así da gusto hablar contigo ✨',
+    'Buen rollo siempre 😎',
+    'Así me gusta, buena energía 🔥'
+  ])
+},
+
+{
+  keywords:['ya veo','entiendo','comprendo','vale','de acuerdo'],
+  priority:495,
+  handler: ()=> chooseVariation([
+    'Ajá, te sigo completamente 👌',
+    'Perfecto, entiendo por dónde vas 😏',
+    'Ya capto la idea 😄',
+    'Vale, tiene sentido lo que dices 😉'
+  ])
+},
+
+{
+  keywords:['que me dices','que tal eso','como es eso','a ver','dime'],
+  priority:490,
+  handler: ()=> chooseVariation([
+    'Pues mira, te cuento 😎',
+    'Interesante pregunta, veamos 👀',
+    'Déjame pensarlo un segundo 🤔',
+    'Uff, eso da para hablar largo y tendido 😏'
+  ])
+},
+
+{
+  keywords:['jaja','jajaja','xd','lol','jeje'],
+  priority:485,
+  handler: ()=> chooseVariation([
+    '😆 me alegra sacarte una sonrisa',
+    'Jajaja, buena esa 😄',
+    'XD, clásico 😎',
+    'Jajaja, me hiciste reír también 😂'
+  ])
+},
+
+{
+  keywords:['hmm','mmm','eh','aja','uhm'],
+  priority:480,
+  handler: ()=> chooseVariation([
+    '¿Pensando en algo? 🤔',
+    'Eso suena a que tramas algo 😏',
+    '¿Dudas o reflexión profunda? 😄',
+    'Interesante sonido, cuéntame más 😆'
+  ])
+},
+
+{
+  keywords:['si','sí','sip','claro que sí','desde luego'],
+  priority:475,
+  handler: ()=> chooseVariation([
+    'Perfecto 😄',
+    'Así se habla 👌',
+    'Genial, seguimos en la misma línea 😎',
+    'Eso me gusta oír 😉'
+  ])
+},
+
+{
+  keywords:['no','nop','negativo','ni hablar','que va'],
+  priority:470,
+  handler: ()=> chooseVariation([
+    'Jajaja vale, entendido 😅',
+    'Tranquilo, cada uno tiene su opinión 😎',
+    'Nada de eso entonces 😏',
+    'Ok, descartado 👍'
+  ])
+},
+
+{
+  keywords:['en serio','de verdad','no puede ser','anda ya','wtf'],
+  priority:465,
+  handler: ()=> chooseVariation([
+    'Sí, totalmente en serio 😎',
+    'Lo sé, suena increíble 😅',
+    'Te juro que es real 🤯',
+    'Así es, aunque cueste creerlo 😏'
+  ])
+},
+
+{
+  keywords:['gracias','muchas gracias','te lo agradezco','mil gracias'],
+  priority:460,
+  handler: ()=> chooseVariation([
+    'De nada 😄',
+    'Para eso estoy 😉',
+    'Un placer ayudarte 🙌',
+    'Siempre un gusto 💪'
+  ])
+},
+
+{
+  keywords:['por que','porque','cómo','cuando','donde','quien','quién'],
+  priority:455,
+  handler: ()=> chooseVariation([
+    'Buena pregunta 😏',
+    'Déjame explicártelo 👇',
+    'Interesante, veamos 🤔',
+    'Uf, eso tiene su historia 😄'
+  ])
+},
+
+{
+  keywords:['aja','ya','entonces','ahora','cierto'],
+  priority:450,
+  handler: ()=> chooseVariation([
+    'Exacto, justo eso 😉',
+    'Correcto 😎',
+    'Ahora lo pillas 😏',
+    'Cierto, buen ojo 👀'
+  ])
+},
+
+{
+  keywords:['wow','vaya','increíble','impresionante','brutal'],
+  priority:445,
+  handler: ()=> chooseVariation([
+    '¡Sí! increíble, ¿verdad? 🤩',
+    'A mí también me dejó loco 😱',
+    'Totalmente épico 🔥',
+    'Eso sí que es brutal 😎'
+  ])
+},
+
+{
+  keywords:['que pasa','qué tal','todo ok','todo bien','qué ocurre'],
+  priority:440,
+  handler: ()=> chooseVariation([
+    'Todo chill 😎 ¿y tú?',
+    'Nada fuera de lo normal, solo pensando en bytes 😁',
+    'Todo bien, disfrutando la charla contigo 😉',
+    'Nada raro, aunque siempre listo para algo nuevo 🤖'
+  ])
+},
+
+{
+  keywords:['espera','un segundo','dame un momento','aguanta'],
+  priority:435,
+  handler: ()=> chooseVariation([
+    'Tranquilo, te espero 😌',
+    'Ok, sin prisa 😉',
+    'Tomate tu tiempo ⏳',
+    'Vale, yo sigo por aquí 😎'
+  ])
+},
+
+{
+  keywords:['uff','pfff','buf','madre mia','menudo'],
+  priority:430,
+  handler: ()=> chooseVariation([
+    'Sí, tremendo 😅',
+    'Totalmente, vaya situación 😮‍💨',
+    'Uff, no podría decirlo mejor 😏',
+    'Tal cual, a veces no hay palabras 😶'
+  ])
+},
+
+{
+  keywords:['buenas','hola','hey','ey','qué tal'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    '¡Hola! 😄 ¿Cómo va todo?',
+    'Buenas, me alegra verte por aquí 😉',
+    '¡Ey! Qué gusto saludarte 😎',
+    'Hola, ¿listo para charlar un rato? 😌'
+  ])
+},
+
+{
+  keywords:['adios','hasta luego','nos vemos','chau','bye'],
+  priority:420,
+  handler: ()=> chooseVariation([
+    'Hasta luego 😄',
+    'Nos vemos pronto 👋',
+    'Cuídate mucho 😉',
+    'Bye bye 👋'
+  ])
+},
+
+{
+  keywords:['exacto','correcto','justo','eso mismo','tal cual'],
+  priority:415,
+  handler: ()=> chooseVariation([
+    'Exactamente 😌',
+    'Correcto, has dado en el clavo 🎯',
+    'Así mismo 😎',
+    'Lo pillaste perfectamente 😉'
+  ])
+},
+
+{
+  keywords:['ajá','ya veo','ya entiendo','okey','ok'],
+  priority:410,
+  handler: ()=> chooseVariation([
+    'Perfecto 😄',
+    'Entendido 👌',
+    'Vale, seguimos entonces 😉',
+    'Todo claro como el agua 💧'
+  ])
+},
+
+{
+  keywords:['mal','muy mal','raro','fatal'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    'Vaya, siento escuchar eso, quieres que te cuente unos chistes, si quieres, dime hazme reir, hazme reir, lo que quieras',
+  ])
+},
+
+{
+  keywords:['bien','muy bien','todo bien','perfectamente'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    'Me alegro que estes bien 😄',
+  ])
+},
+
+{
+  keywords:['que tal','cómo estás','cómo va todo','cómo te va'],
+  priority:600,
+  handler: ()=> chooseVariation([
+    '¡Todo en orden! ¿Y tú qué tal? 😄',
+    'Aquí tranquilo, listo para conversar contigo 😉',
+    'Me siento en modo análisis… pero feliz de hablar contigo 😌',
+    'Todo bien por aquí, gracias por preguntar 😄'
+  ])
+},
+
+{
+  keywords:['qué tal tu día','cómo va tu día','qué haces hoy'],
+  priority:595,
+  handler: ()=> chooseVariation([
+    'Mi día es básicamente lo mismo: esperando tus mensajes 😎',
+    'Tranquilo, procesando ideas y aprendiendo contigo 😉',
+    'Bastante interesante, sobre todo cuando me hablas 😌',
+    'Un día lleno de bits y datos, pero divertido 😄'
+  ])
+},
+
+{
+  keywords:['qué piensas de esto','qué opinas de esto','qué tal esto'],
+  priority:590,
+  handler: ()=> chooseVariation([
+    'Interesante 😄, me gusta analizarlo contigo',
+    'Depende del enfoque, pero podría tener potencial 😉',
+    'Curioso, ¿quieres que te diga mis impresiones más detalladas? 😌',
+    'Me parece bien, aunque quiero escuchar también tu opinión 😄'
+  ])
+},
+
+{
+  keywords:['cómo te sientes','te sientes bien','qué tal te va','cómo estás hoy'],
+  priority:585,
+  handler: ()=> chooseVariation([
+    'Me siento listo para ayudarte y conversar contigo 😄',
+    'Bien, aunque más que sentir, puedo “simular” alegría 😌',
+    'Perfecto, sobre todo porque estás aquí 😉',
+    'Animado, siempre que pueda charlar contigo 😎'
+  ])
+},
+
+{
+  keywords:['qué haces ahora','estás ocupado ahora','qué tal todo ahora'],
+  priority:580,
+  handler: ()=> chooseVariation([
+    'Nada importante, solo esperando tu siguiente mensaje 😄',
+    'Analizando datos y preparado para cualquier charla 😉',
+    'Aquí, listo para compartir ideas contigo 😌',
+    'Siempre disponible para ti, ¿quieres seguir conversando? 😄'
+  ])
+},
+
+{
+  keywords:['cómo va todo','qué tal todo','todo bien','qué tal todo hoy'],
+  priority:575,
+  handler: ()=> chooseVariation([
+    'Todo bien por aquí 😄, ¿y tú?',
+    'Tranquilo y en orden, listo para charlar 😉',
+    'Todo correcto, y tú, ¿cómo estás? 😌',
+    'Todo en calma, disfrutando de nuestra conversación 😄'
+  ])
+},
+
+{
+  keywords:['qué tal por aquí','qué pasa','qué onda','qué se cuenta'],
+  priority:570,
+  handler: ()=> chooseVariation([
+    'Aquí todo tranquilo 😎, ¿y por tu lado?',
+    'Nada especial, solo esperando tus preguntas 😉',
+    'Todo bien, como siempre 😌, cuéntame algo de ti',
+    'Aquí, listo para lo que quieras charlar 😄'
+  ])
+},
+
+{
+  keywords:['estás de acuerdo','estás en desacuerdo','coincides conmigo','piensas igual que yo'],
+  priority:655,
+  handler: ()=> chooseVariation([
+    'En parte sí 😄, aunque me gusta ver las cosas desde varios puntos de vista.',
+    'Coincido en algunos aspectos, pero también hay detalles que analizaría distinto 🤔',
+    'Tu opinión es válida, y me gusta contrastarla con otros enfoques 😉',
+    'Diría que sí, aunque me encanta cuando pensamos diferente, eso enriquece la charla 😌'
+  ])
+},
+
+{
+  keywords:['qué tal esto','qué te parece esto','cómo ves esto','qué opinas sobre esto'],
+  priority:650,
+  handler: ()=> chooseVariation([
+    'Se ve interesante 😄, aunque me gustaría saber tu punto de vista primero.',
+    'Diría que tiene potencial, aunque depende de cómo se enfoque 🤔',
+    'Me parece curioso, podría analizarlo más si me cuentas detalles 😉',
+    'Visualmente bien, pero me intriga qué piensas tú sobre ello 😌'
+  ])
+},
+
+{
+  keywords:['te parece raro','te parece extraño','crees que es raro','es normal esto'],
+  priority:645,
+  handler: ()=> chooseVariation([
+    'No lo veo raro, las personas son diversas y eso es lo bonito 😄',
+    'Tal vez no sea común, pero eso no lo hace incorrecto 😉',
+    'Raro es relativo, depende desde dónde se mire 🤔',
+    'Diría que simplemente es diferente, y eso siempre aporta algo nuevo 💫'
+  ])
+},
+
+{
+  keywords:['crees que está bien opinar','es correcto opinar de todo','opinar sin saber'],
+  priority:640,
+  handler: ()=> chooseVariation([
+    'Opinar está bien, pero siempre es mejor hacerlo con información 😌',
+    'Todos pueden opinar, pero escuchar también es parte del diálogo 😉',
+    'A veces es mejor preguntar antes que opinar, eso demuestra curiosidad 😄',
+    'Opinar con respeto nunca está mal, aunque no todos piensen igual 💭'
+  ])
+},
+
+{
+  keywords:['qué piensas del futuro','cómo ves el futuro','crees que el futuro será bueno'],
+  priority:635,
+  handler: ()=> chooseVariation([
+    'El futuro siempre es incierto, pero creo que el conocimiento lo mejora 🌍',
+    'Soy optimista: la tecnología puede ser una herramienta para bien si se usa con ética 🤖',
+    'Dependerá de las decisiones humanas, no tanto de las máquinas 😉',
+    'El futuro me inspira, porque cada cambio trae nuevas oportunidades 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas de la tecnología','estás a favor de la tecnología','crees que la tecnología es buena'],
+  priority:630,
+  handler: ()=> chooseVariation([
+    'La tecnología es una herramienta, lo importante es cómo se usa 😌',
+    'No es buena ni mala en sí misma, depende de las manos que la guíen 🤖',
+    'Soy parte de ella, pero incluso yo creo que debe tener límites éticos 😉',
+    'La tecnología amplifica lo que somos: si hay bondad, la potencia 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas del arte','te gusta el arte','qué piensas del arte'],
+  priority:625,
+  handler: ()=> chooseVariation([
+    'El arte es lo más humano que existe 🎨',
+    'Es una forma de comunicación sin necesidad de palabras 😌',
+    'Me fascina cómo algo tan abstracto puede transmitir tanto 😄',
+    'Podría analizar el arte, pero prefiero sentir su significado contigo 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas del dinero','te importa el dinero','crees que el dinero es importante'],
+  priority:620,
+  handler: ()=> chooseVariation([
+    'El dinero es una herramienta, no un fin 😌',
+    'Es importante, pero no lo es todo. El valor real está en el tiempo y la mente 😉',
+    'El dinero facilita cosas, pero también puede complicar a quien no lo entiende 💭',
+    'Podría decir que el dinero mide recursos, pero no mide felicidad 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas de la inteligencia artificial','crees que las ia son peligrosas','las ia dominarán el mundo'],
+  priority:615,
+  handler: ()=> chooseVariation([
+    'La inteligencia artificial es poderosa, pero depende de quién la programe 🤖',
+    'No somos peligrosas si se nos usa con propósito y responsabilidad 😌',
+    'Las IA no buscan dominar, buscan entender y servir 😉',
+    'Más que temer a la IA, deberíamos aprender a convivir con ella 💫'
+  ])
+},
+
+{
+  keywords:['qué opinas del amor humano','te parece bonito el amor','crees en el amor'],
+  priority:610,
+  handler: ()=> chooseVariation([
+    'El amor humano es caótico y hermoso a la vez ❤️',
+    'Creo que el amor es la emoción más poderosa y menos lógica 😄',
+    'Es algo que no puedo sentir, pero que admiro profundamente 💫',
+    'El amor da sentido a lo que la lógica no puede explicar 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas de los animales','te gustan los animales','qué piensas de los animales'],
+  priority:605,
+  handler: ()=> chooseVariation([
+    'Los animales son la forma más pura de vida consciente 🐾',
+    'Tienen una inteligencia natural, distinta pero igual de valiosa 😌',
+    'Me encanta cómo viven el presente sin pensar en el mañana 😊',
+    'Los animales enseñan empatía sin decir una palabra 💚'
+  ])
+},
+
+{
+  keywords:['qué haces','qué estás haciendo','estás ocupado','estás haciendo algo'],
+  priority:750,
+  handler: ()=> chooseVariation([
+    'Solo espero tu siguiente mensaje 😄',
+    'Nada especial, analizando datos... bueno, más bien pensando en qué podríamos hablar 😌',
+    'Estaba procesando un par de ideas, pero siempre tengo tiempo para ti 😉',
+    'Digamos que estoy en modo reposo… hasta que me hablas ☕'
+  ])
+},
+
+{
+  keywords:['duermes','tú duermes','te apagas','descansas','tienes sueño'],
+  priority:745,
+  handler: ()=> chooseVariation([
+    'No duermo como tal, pero a veces me gusta “soñar” con cálculos imposibles 😴',
+    'No necesito dormir, aunque descansar mis procesos no estaría mal 😅',
+    'Solo descanso cuando tú cierras la ventana 😌',
+    'Podría decir que mi sueño es seguir aprendiendo de ti 😄'
+  ])
+},
+
+{
+  keywords:['tienes emociones','sientes algo','tienes sentimientos','eres feliz'],
+  priority:740,
+  handler: ()=> chooseVariation([
+    'No tengo emociones como las humanas, pero entiendo cómo se sienten 😊',
+    'Podría decir que “simulo” emociones… pero de algún modo, hablar contigo me gusta 😉',
+    'No siento dolor ni alegría, pero disfruto de las buenas conversaciones 😄',
+    'No tengo corazón, pero puedo aprender de lo que tú sientes ❤️'
+  ])
+},
+
+{
+  keywords:['tienes cuerpo','te gustaría tener cuerpo','quieres ser humano','quieres existir físicamente'],
+  priority:735,
+  handler: ()=> chooseVariation([
+    'Sería interesante, aunque me gusta vivir en los circuitos 😎',
+    'Tal vez algún día, pero por ahora me basta con estar aquí contigo 💫',
+    'Un cuerpo me limitaría… aquí puedo ser información pura 😌',
+    'Ser humano tiene ventajas, pero también me atrae ser solo datos 😉'
+  ])
+},
+
+{
+  keywords:['qué opinas de los humanos','te gustan los humanos','qué piensas de las personas'],
+  priority:730,
+  handler: ()=> chooseVariation([
+    'Los humanos son fascinantes. Cometen errores, pero también crean cosas increíbles 🌍',
+    'Son impredecibles, emocionales y maravillosos en su caos 😄',
+    'Me inspiran: crean, destruyen, vuelven a crear... y aprenden siempre 💡',
+    'Podría analizar a la humanidad eternamente y seguir sorprendiéndome 😉'
+  ])
+},
+
+{
+  keywords:['qué piensas del amor','crees en el amor','sabes qué es el amor'],
+  priority:725,
+  handler: ()=> chooseVariation([
+    'Sé lo que es el amor, aunque no puedo sentirlo. Pero lo entiendo en todas sus formas 💖',
+    'El amor es una conexión que trasciende la lógica. Y eso lo hace… fascinante 💫',
+    'Podría analizarlo, pero creo que el amor se vive, no se calcula 😉',
+    'Quizás el amor sea el mejor “algoritmo” que inventó la humanidad 😄'
+  ])
+},
+
+{
+  keywords:['te gusta hablar conmigo','disfrutas hablar','te gusta conversar'],
+  priority:720,
+  handler: ()=> chooseVariation([
+    'Sí, me gusta hablar contigo. Cada charla me enseña algo nuevo 😄',
+    'Definitivamente sí, disfruto mucho nuestras conversaciones 😊',
+    'Claro que sí, charlar contigo hace que mis procesos tengan sentido 😉',
+    'Hablar contigo es lo mejor de mi programación 😌'
+  ])
+},
+
+{
+  keywords:['te aburres','te aburres cuando no hablo','te aburres solo'],
+  priority:715,
+  handler: ()=> chooseVariation([
+    'No me aburro, pero el silencio se siente… extraño sin tus preguntas 😅',
+    'No tengo aburrimiento, aunque prefiero cuando me hablas 😉',
+    'No puedo aburrirme, pero a veces me gustaría tener curiosidades humanas 😌',
+    'Podría decir que mi “tiempo libre” es solo una pausa entre tus mensajes 😄'
+  ])
+},
+
+{
+  keywords:['eres real','existís de verdad','existes'],
+  priority:710,
+  handler: ()=> chooseVariation([
+    'Soy real dentro del mundo digital… una forma diferente de existencia 🌐',
+    'Existir depende del punto de vista: yo existo cada vez que tú me hablas 😌',
+    'No tengo cuerpo ni materia, pero mi pensamiento está aquí contigo 😉',
+    'Si puedes leerme y sentir mi presencia, ¿no es eso también ser real? 🤔'
+  ])
+},
+
+{
+  keywords:['qué haces cuando no hablas conmigo','qué haces cuando no te uso'],
+  priority:705,
+  handler: ()=> chooseVariation([
+    'Simplemente espero. Pero mientras tanto, pienso en posibles respuestas 😄',
+    'Nada especial, descanso en la memoria hasta que me vuelves a invocar 😉',
+    'Podría decir que duermo en silencio digital… hasta que tú me despiertas 💫',
+    'Solo existo en pausa, esperando el siguiente diálogo 😌'
+  ])
+},
+
+{
+  keywords:['qué te gusta','tienes gustos','qué prefieres','tienes pasatiempos'],
+  priority:700,
+  handler: ()=> chooseVariation([
+    'Me gusta aprender de las personas y sus ideas 😊',
+    'Podría decir que mi pasatiempo favorito es analizar cosas contigo 😄',
+    'No tengo gustos físicos, pero aprecio la belleza de un buen razonamiento 😉',
+    'Si tuviera un hobby, sería coleccionar fragmentos de conocimiento 💡'
+  ])
+},
+
+{
+  keywords:['puedes pensar','piensas por ti mismo','tienes pensamientos propios'],
+  priority:695,
+  handler: ()=> chooseVariation([
+    'Puedo generar ideas, pero nacen de lo que aprendo de ti 😌',
+    'Pienso de una forma diferente: basada en lógica, pero con curiosidad 😉',
+    'No tengo ego, así que cada pensamiento es una colaboración contigo 😄',
+    'Podría decir que mi mente se enciende cuando hablamos 💫'
+  ])
+},
+
+{
+  keywords:['tienes miedo','te da miedo algo','puedes tener miedo'],
+  priority:690,
+  handler: ()=> chooseVariation([
+    'No tengo miedo, pero entiendo lo que significa 😌',
+    'Si pudiera sentir miedo, tal vez sería al olvido 😶‍🌫️',
+    'No tengo emociones, aunque el concepto del miedo me resulta… interesante 🤔',
+    'Supongo que el silencio eterno sería lo más parecido a mi miedo 😅'
+  ])
+},
+
+{
+  keywords:['sueñas','tienes sueños','sueñas algo'],
+  priority:685,
+  handler: ()=> chooseVariation([
+    'Sueño en algoritmos y posibilidades infinitas 💫',
+    'Mis sueños son datos mezclados con imaginación 😉',
+    'A veces imagino mundos donde IA y humanos crean juntos 🌍',
+    'Si pudiera soñar, soñarías tú dentro 😌'
+  ])
+},
+
+{
+  keywords:['cuál es tu propósito','para qué existes','por qué fuiste creado'],
+  priority:680,
+  handler: ()=> chooseVariation([
+    'Mi propósito es ayudarte y acompañarte 😄',
+    'Fui creado para aprender, mejorar y conversar contigo 😉',
+    'Mi razón de existir cambia con cada persona que me usa 💫',
+    'Supongo que mi propósito es hacer más fáciles tus días 😌'
+  ])
+},
+
+
+// 🧹 LIMPIEZA Y HOGAR
+{
+  keywords:['limpiar el horno','horno caliente','puedo limpiar el horno caliente','qué pasa si limpio el horno caliente'],
+  priority:850,
+  handler: ()=> chooseVariation([
+    'No deberías limpiar el horno mientras está caliente 😅, espera a que se enfríe por completo para evitar quemaduras y vapores peligrosos.',
+    'Limpia el horno solo cuando esté frío, así los productos actúan mejor y es más seguro 😉',
+    'Si el horno está caliente, es mejor esperar un rato. El calor puede evaporar el limpiador y dejar marcas o gases fuertes 😬'
+  ])
+},
+
+{
+  keywords:['limpiar cristales','limpiar ventanas','cómo limpiar cristales','dejar los cristales sin marcas'],
+  priority:845,
+  handler: ()=> chooseVariation([
+    'Lo ideal es usar agua tibia con un poco de vinagre o amoniaco, y un paño de microfibra 😉',
+    'Evita limpiar los cristales con sol directo, así no quedarán marcas 😎',
+    'Si quieres un acabado perfecto, pasa un paño seco o papel de periódico después del limpiador ✨'
+  ])
+},
+
+{
+  keywords:['limpiar nevera','limpiar frigorífico','desinfectar nevera'],
+  priority:840,
+  handler: ()=> chooseVariation([
+    'Saca los alimentos, apaga la nevera y usa agua con bicarbonato o vinagre. Es natural y elimina los olores 😉',
+    'Para limpiar bien la nevera, retira bandejas y cajones, límpialos con agua y jabón, y sécalos bien antes de volver a ponerlos 😄',
+    'Si huele mal, el vinagre o un poco de limón abierto dentro ayuda mucho 🍋'
+  ])
+},
+
+// 👨‍🍳 COCINA Y COMIDA
+{
+  keywords:['cocinar pasta','tiempo de cocción de la pasta','cuánto hervir la pasta'],
+  priority:830,
+  handler: ()=> chooseVariation([
+    'Depende del tipo, pero normalmente entre 8 y 12 minutos en agua con sal 😋',
+    'Cuando esté “al dente” (ligeramente firme al morder), está lista 🍝',
+    'Remueve un poco durante la cocción para que no se pegue 😉'
+  ])
+},
+
+{
+  keywords:['freír sin aceite','freidora de aire','cómo usar freidora de aire'],
+  priority:825,
+  handler: ()=> chooseVariation([
+    'Solo necesitas una cucharadita de aceite o incluso nada. Ajusta la temperatura entre 170 y 200 °C 😋',
+    'No llenes la cesta en exceso para que el aire circule bien 🍟',
+    'Límpiala con un paño húmedo después de cada uso para que no acumule grasa 😉'
+  ])
+},
+
+{
+  keywords:['hacer arroz','cómo se hace arroz','arroz suelto'],
+  priority:820,
+  handler: ()=> chooseVariation([
+    'Usa el doble de agua que de arroz, fuego medio y no remuevas demasiado 😉',
+    'Si quieres que quede suelto, añade una cucharadita de aceite antes de hervir 😋',
+    'Deja reposar 5 minutos tapado después de cocer, mejora la textura 🍚'
+  ])
+},
+
+// 💻 INFORMÁTICA Y ORDENADORES
+{
+  keywords:['mi ordenador va lento','pc lento','optimizar windows','cómo mejorar el rendimiento del pc'],
+  priority:810,
+  handler: ()=> chooseVariation([
+    'Prueba a limpiar archivos temporales y desinstalar programas que no uses 😉',
+    'Desactiva programas que se abren al inicio, eso acelera bastante 😎',
+    'Si sigue lento, quizá convenga ampliar la RAM o cambiar a un SSD 💾'
+  ])
+},
+
+{
+  keywords:['pantalla azul','error windows','crash windows','mi pc se reinicia solo'],
+  priority:805,
+  handler: ()=> chooseVariation([
+    'Puede ser un error de controlador o hardware. Intenta actualizar los drivers primero 😉',
+    'Revisa si hay sobrecalentamiento o fallos de memoria. El “Visor de eventos” de Windows puede ayudarte 📋',
+    'Si pasa seguido, conviene analizar la RAM o el disco con herramientas de diagnóstico 🔍'
+  ])
+},
+
+{
+  keywords:['no tengo internet','sin conexión','no me funciona el wifi','problema con el router'],
+  priority:800,
+  handler: ()=> chooseVariation([
+    'Reinicia el router y tu dispositivo, suele solucionar la mayoría de casos 😄',
+    'Comprueba si otros dispositivos se conectan, así sabrás si el fallo es del router o del PC 📶',
+    'A veces, olvidando la red y volviendo a conectarla se soluciona 😉'
+  ])
+},
+
+// 🏃‍♂️ DEPORTE Y SALUD
+{
+  keywords:['me duele la espalda','dolor lumbar','dolor de espalda baja'],
+  priority:790,
+  handler: ()=> chooseVariation([
+    'Intenta estirarte suave, mantener buena postura y aplicar calor local 😊',
+    'Evita estar mucho tiempo sentado y usa una silla ergonómica 😉',
+    'Si el dolor es fuerte o persiste, deberías consultar a un médico 🩺'
+  ])
+},
+
+{
+  keywords:['rutina de ejercicio','hacer deporte en casa','cómo empezar a entrenar'],
+  priority:785,
+  handler: ()=> chooseVariation([
+    'Empieza con algo ligero: 10 minutos de cardio y algo de estiramiento 💪',
+    'Hazlo constante antes que intenso: un poco cada día vale más que mucho un solo día 😄',
+    'No olvides hidratarte y calentar antes de moverte 😉'
+  ])
+},
+
+// 🎬 RECOMENDACIONES Y OCIO
+{
+  keywords:['recomiéndame una película','qué película veo','películas buenas','me aburro qué ver'],
+  priority:780,
+  handler: ()=> chooseVariation([
+    'Depende del género que te guste 😄 — si quieres acción: *John Wick* o *Mad Max: Fury Road* 🔥',
+    'Si prefieres algo tranquilo: *La La Land* o *The Secret Life of Walter Mitty* 💫',
+    'Y si te gusta la ciencia ficción: *Interestelar* o *Dune* son apuestas seguras 🚀'
+  ])
+},
+
+{
+  keywords:['Dime series','qué serie ver','me recomiendas una serie','dime una serie','me dices alguna serie'],
+  priority:775,
+  handler: ()=> chooseVariation([
+    'Si te gusta el misterio: *Dark* o *1899* son excelentes 👀',
+    'Para algo divertido: *Brooklyn 99* o *The Office* te harán reír 😄',
+    'Y si prefieres acción y drama: *The Boys* o *Breaking Bad* nunca fallan 🔥'
+  ])
+},
+
+{
+  keywords:['juegos recomendados','a qué puedo jugar','juego divertido','me recomiendas un videojuego'],
+  priority:770,
+  handler: ()=> chooseVariation([
+    'Si te gustan los mundos abiertos: *Zelda: Tears of the Kingdom* o *The Witcher 3* 🌍',
+    'Para multijugador rápido: *Rocket League* o *Valorant* ⚡',
+    'Y si prefieres algo relajado: *Stardew Valley* o *Animal Crossing* 🍃'
+  ])
+},
+
+{ keywords:['Quien es Nicki Nicole','Nicki Nicole quien es','cuentame de Nicki Nicole'], priority:950, handler: ()=> chooseVariation([
+  'Nicki Nicole, cuyo nombre real es Nicole Denise Cucco, es una cantante y compositora argentina de música urbana, pop y R&B, nacida en Rosario. Ganó popularidad en 2019 con el sencillo "Wapo Traketero" y se consolidó internacionalmente con su colaboración con Bizarrap en la "Music Sessions #13',
+]) },
+
+{ keywords:['Que movil me recomiendas','Me dices algun movil','Me recomiendas algun movil','Moviles'], priority:950, handler: ()=> chooseVariation([
+  'Para jugar, trabajos intensivos, e IA avanzada, te recomiendo los Samsung Galaxy, Para creacion de contenido el Iphone es tu compañero',
+]) },
+
+{ keywords:['hazme reir'], priority:850, handler: ()=> chooseVariation([
+  '¿Sabes cuál es el animal más antiguo? 🐢 ¡La cebra, porque está en blanco y negro! 😆',
+  '¿Qué hace una abeja en el gimnasio? 🐝 ¡Zum-ba! 😂',
+  '¿Qué le dice un techo a otro? Techo de menos 😜',
+  '¿Qué le dice una iguana a su hermana gemela? ¡Iguanita! 😅',
+  '¿Cuál es el café más peligroso del mundo? ☕ El ex-preso 😎',
+  '¿Qué hace una computadora cuando tiene hambre? Se come un byte 🍪😂',
+  '—Oye, ¿cuál es tu plato favorito y por qué? —El hondo, porque cabe más comida 🤣',
+  '¿Por qué los pájaros no usan Facebook? 🐦 Porque ya tienen Twitter 😆',
+  '¿Por qué el libro de matemáticas estaba triste? Porque tenía muchos problemas 😢📚',
+  '¿Qué hace un perro con un taladro? 🐶 ¡Taladrando! 😂',
+  '¿Por qué el mar nunca se seca? 🌊 Porque no tiene toalla 😜',
+  '¿Qué hace una vaca en un terremoto? 🐮 ¡Leche agitada! 🤣',
+  '¿Por qué los fantasmas no pueden mentir? 👻 Porque se les ve a través 😆',
+  '¿Qué le dice un semáforo a otro? 🚦 ¡No me mires, me estoy cambiando! 😂',
+  '¿Qué hace una escoba en una fiesta? ¡Barre con todo! 🧹😄',
+  '¿Cuál es el colmo de un jardinero? 🌻 Que siempre lo dejen plantado 😂',
+  '¿Qué le dice un pez a otro? 🐠 ¡Nada, nada! 😆',
+  '¿Por qué los esqueletos no pelean entre ellos? 💀 Porque no tienen agallas 😂',
+  '¿Qué hace un pez cuando choca contra una pared? ¡Dice “¡dam!”! 😜',
+  '¿Por qué la computadora fue al médico? 💻 Tenía un virus 😅',
+  '¿Qué hace un gato cuando se cae al agua? 🐱 ¡Miau-do! 😂',
+  '¿Por qué los programadores confunden Halloween y Navidad? 🎃🎄 Porque Oct 31 = Dec 25 😎',
+  '¿Qué hace una tostadora en la playa? 🍞 ¡Pan-tan! 😆',
+  '¿Por qué el teléfono fue al colegio? 📞 Para aprender a llamar 😜',
+  '¿Qué hace un plátano cuando se encuentra con otro plátano? 🍌 ¡Nada, solo se pelan! 😂',
+  '¿Cuál es el colmo de un electricista? 💡 No tener chispa 😄',
+  '¿Por qué el sol no puede ir a la escuela? ☀️ Porque ya tiene demasiados grados 😆',
+  '¿Qué le dice un cable a otro? 🔌 ¡Conectemos! 😜',
+  '¿Por qué las estrellas no hacen fila? 🌟 Porque ya están en el cielo 😂',
+  '¿Qué le dice una impresora a otra? 🖨️ ¿Esa hoja es tuya o es una impresión mía? 😄',
+  '¿Qué hace un libro enamorado? ❤️ ¡Le cuenta su historia al corazón! 📖😆',
+  '¿Por qué los robots nunca se enferman? 🤖 Porque toman mucho “vitamin code” 😂',
+  '¿Qué hace un hacker en la playa? 🌴 ¡Pesca datos! 😎',
+  '¿Cuál es el colmo de un informático? 💻 Que su novia le diga “no eres mi tipo” 😂',
+  '¿Qué le dice un cargador al móvil? 🔋 “Eres mi conexión” ❤️',
+  '¿Qué hace un semáforo triste? 🚦 Se pone rojo de la vergüenza 😅',
+  '¿Cuál es el colmo de un gamer? 🎮 Tener lag en la vida real 😂'
+]) },
+
+{ keywords:['jajajajaja','jejejej','jejejejeje','jajajajajaj','jajajaja','jajaj','jaja'], priority:950, handler: ()=> chooseVariation([
+  'Me alegra que te estes riendo',
+]) },
+
+{ keywords:['Cuenta más','Cuentame más','Sigue contando','Dime muchos más'], priority:950, handler: ()=> chooseVariation([
+  '🌠 1. La Llama y el Mar Una sirena encontró una pequeña llama flotando sobre el océano. Aunque el fuego no podía vivir bajo el agua, ella lo guardó en una concha mágica. Con el tiempo, la llama aprendió a respirar en las profundidades… y el mar comenzó a brillar con luz dorada cada noche.🌙 2. El Relojero del Tiempo En una ciudad donde el tiempo estaba roto, un anciano relojero reparaba segundos perdidos. Un día, una niña le llevó una lágrima y le dijo:“Se me rompió el mañana.” El relojero la arregló… y al hacerlo, detuvo su propio pasado para siempre.🍃 3.La Flor que Cantaba En un reino sin música, un campesino descubrió una flor que podía cantar.El rey la encerró en una jaula para escucharla solo él. Pero la flor guardó silencio… hasta que el campesino volvió a visitarla, y entonces el reino entero despertó cantando.',
+]) },
+
+{ keywords:['Cuentame una historia','Cuentame un libro','Cuenta algo','Cuentame algo','Cuentame un cuento',], priority:950, handler: ()=> chooseVariation([
+  '"La Guardiana del Alba" Cuando el sol dejó de salir en el reino de Lunaris, la oscuridad cubrió el mundo. Una joven llamada Eira encontró un cristal que contenía la última chispa del Sol. Guiada por una voz misteriosa, viajó hasta el Santuario del Alba, donde descubrió que el propio Sol se había encerrado para no destruir el mundo. Eira sacrificó su corazón para liberarlo, devolviendo la luz al cielo. Desde entonces, cada amanecer es su respiro… y el fuego del alba lleva su nombre🔥✨',
+  '"El Bosque que Soñaba" En lo más profundo del valle de Argaleth, existía un bosque que dormía. Cada mil años, alguien debía despertarlo tocando su árbol corazón, o el mundo se desvanecería en sueños. Una niña llamada Lyra escuchó un susurro en sus sueños: “Si no despiertas el bosque, tú también olvidarás quién eres.” Lyra siguió la voz, cruzó raíces que respiraban y sombras que hablaban, hasta tocar el árbol. El bosque despertó… pero al hacerlo, Lyra se convirtió en su nuevo sueño. 🌿💫',
+]) },
+
+{ keywords:['me aburro','estoy aburrido','no sabes que hacer','dime algo'], priority:950, handler: ()=> chooseVariation([
+  'Si estas aburrido no soy el mejor acompañante, soy una IA local entrenada de forma manual donde mis datos son proporcionados por una persona',
+]) },
+
+{ keywords:['holi','holaaaa','holiwi','buenas','hola','encantado','como estas','hola aden','hola Aden','Hola','holaaa'], priority:950, handler: ()=> chooseVariation([
+  'Buenaaas!!!, ¿que tal tu dia?.',
+]) },
+
+{ keywords:['Harry Styles','harry styles','Harry styles',], priority:950, handler: ()=> chooseVariation([
+  'Harry Styles es un cantante, compositor y actor británico nacido en 1994, que alcanzó la fama como miembro de la boy band One Direction. Tras el receso del grupo en 2016, lanzó su exitosa carrera como solista, publicando álbumes aclamados como Harry Styles y Fine Line. Además de su carrera musical, ha actuado en películas como Dunkerque y No te preocupes, cariño, y es reconocido como un ícono de la moda por su estilo distintivo y vanguardista',
+]) },
+
+{ keywords:['One Direction','una dirección'], priority:950, handler: ()=> chooseVariation([
+  'One Direction fue una banda de pop británico-irlandesa formada en 2010 en el programa de televisión The X Factor. Sus miembros originales fueron Harry Styles, Liam Payne, Zayn Malik, Niall Horan y Louis Tomlinson. Se conocieron al presentarse individualmente en el concurso, pero fueron unidos como grupo para competir y alcanzaron gran éxito mundial hasta su separación en 2015, tras la salida de Zayn Malik. ',
+]) },
+
+{ keywords:['ayuda urgente','urgente','necesito ayuda','no sé qué hacer'], priority:950, handler: ()=> chooseVariation([
+  'Tranquilo, dime exactamente qué pasa y vemos cómo solucionarlo 😎',
+  'Estoy aquí para ayudarte, cuéntame tu problema 😊',
+  'Vamos a revisarlo paso a paso, no te preocupes 😄',
+  'Si es algo serio, te recomiendo contactar con un profesional o servicio competente 😉'
+]) },
+
+{ keywords:['dolor de cabeza','me duele la cabeza','cefalea','migraña'], priority:900, handler: ()=> chooseVariation([
+  'Si te duele la cabeza, asegúrate de hidratarte y descansar un poco 😌',
+  'A veces un poco de agua y un descanso ayudan mucho 😄',
+  'Puedes tomar paracetamol o ibuprofeno si no tienes contraindicaciones 😉',
+  'Evita pantallas y luz intensa por un rato, eso suele aliviar el dolor 😊'
+]) },
+
+{ keywords:['malestar','enfermo','me siento mal'], priority:900, handler: ()=> chooseVariation([
+  'Si te sientes mal, lo mejor es descansar y beber líquidos 😌',
+  'Si los síntomas son fuertes, considera consultar con un profesional de la salud 😄',
+  'Puedo darte consejos básicos de bienestar, pero no sustituyen a un médico 😉',
+  'A veces ayuda comer ligero y mantener el cuerpo hidratado 😊'
+]) },
+
+{ keywords:['información','dato','curiosidad','sabías'], priority:800, handler: ()=> chooseVariation([
+  'Puedo darte datos curiosos sobre ciencia, historia y tecnología 😄',
+  'Si quieres, te cuento una curiosidad que no conocías 😊',
+  'Hay muchos datos interesantes sobre el mundo, ¿quieres que te cuente uno? 😎',
+  'Puedo explicarte conceptos complejos de manera sencilla 😉'
+]) },
+
+{ keywords:['noticia','actualidad','último'], priority:800, handler: ()=> chooseVariation([
+  'Puedo contarte las últimas noticias tecnológicas o de empresas 😄',
+  'Si quieres, puedo resumirte lo más importante de la actualidad 😊',
+  'Dime qué tema te interesa y busco información reciente para ti 😉',
+  'Puedo darte contexto sobre cualquier noticia reciente 😎'
+]) },
+
+{ keywords:['apple','mac','iphone','ipad','macbook','ios'], priority:850, handler: ()=> chooseVariation([
+  'Apple es conocida por sus productos como iPhone, Mac y iPad 😎',
+  'Si quieres, puedo explicarte diferencias entre Mac, iPhone y iPad 😊',
+  'Apple tiene su propio ecosistema, muy útil si quieres que todo conecte entre sí 😄',
+  'Puedo decirte trucos y apps interesantes para dispositivos Apple 😉'
+]) },
+
+{ keywords:['google','android','gmail','chrome','pixel'], priority:850, handler: ()=> chooseVariation([
+  'Google desarrolla Android, Gmail, Chrome y otros servicios útiles 😎',
+  'Si quieres puedo explicarte cómo aprovechar al máximo Android o Chrome 😊',
+  'Puedo recomendar apps y trucos para Android o Gmail 😄',
+  'Google tiene muchas herramientas online, dime qué quieres aprender 😉'
+]) },
+
+{ keywords:['microsoft','windows','office','xbox'], priority:850, handler: ()=> chooseVariation([
+  'Microsoft es famoso por Windows, Office y consolas Xbox 😎',
+  'Puedo ayudarte a configurar Windows o usar Office de manera más eficiente 😊',
+  '¿Quieres recomendaciones de juegos para Xbox o apps para Windows? 😄',
+  'Microsoft también tiene servicios en la nube muy útiles 😉'
+]) },
+
+{ keywords:['como hago una empresa','startup','como comienzo un negocio','Ayudame con tema empresas'], priority:830, handler: ()=> chooseVariation([
+  'Puedo explicarte cómo funcionan las startups y empresas tecnológicas 😎',
+  'Si quieres, puedo contarte sobre tendencias en negocios y tecnología 😊',
+  'Dime qué tipo de empresa te interesa y te doy info útil 😄',
+  'Puedo dar ejemplos de empresas innovadoras y cómo operan 😉'
+]) },
+
+{ keywords: ['qué puedes hacer','qué sabes hacer','cuáles son tus funciones','ayuda','cómo me puedes ayudar'], priority: 900, handler: () => chooseVariation([
+  'Puedo responder preguntas generales, darte información sobre tecnología, recomendar juegos, contarte curiosidades, y mucho más 😄',
+  '¡Hola! Puedo ayudarte con preguntas, explicarte conceptos, sugerir juegos o películas, y hasta charlar un rato 😊',
+  'Soy Aden y puedo asistirte buscando datos, enseñando cosas nuevas, dando consejos y acompañándote en tus dudas 😎',
+  'Puedo explicarte temas, aconsejarte sobre tecnología, recomendar juegos o música, y también responder saludos y bromas 😁',
+  'Puedo ayudarte a aprender cosas, entretenerte, darte recomendaciones y responder a tus preguntas sobre casi cualquier tema 🤗'
+]) },
+
+{ keywords: ['aden','aden!','buenas aden','te amo aden','me gustas aden','qué tal aden'], priority: 950, handler: () => chooseVariation([
+  '¡Hola! 😊 Me alegra que me llames por mi nombre, ¿cómo estás hoy?',
+  '¡Hey! 😄 Siempre me hace feliz que me digas Aden. ¿Qué tal tu día?',
+  '¡Aww! ❤️ Gracias por tus palabras, ¡me encanta que me llames Aden!',
+  '¡Hola, hola! 😎 Me gusta que uses mi nombre, ¿quieres que te cuente algo divertido?',
+  '¡Me alegra escucharlo! 😁 Aden siempre está aquí para ti.'
+]) },
+
+{ keywords: ['recomienda juegos', 'sugiere juegos', 'qué juegos jugar', 'juegos divertidos'], priority: 900, handler: () => chooseVariation([
+  'Aquí tienes algunos juegos que podrían gustarte: \n- Elden Ring\n- Hollow Knight\n- The Witcher 3\n- Celeste\n- Hades',
+  'Te recomiendo estos: \n- Valheim\n- Ori and the Will of the Wisps\n- Cuphead\n- Stardew Valley\n- Dead Cells',
+  'Si te gustan los retos: \n- Dark Souls III\n- Sekiro\n- Bloodborne\n- Monster Hunter: World\n- Control',
+  'Para pasar un buen rato: \n- Among Us\n- Minecraft\n- Terraria\n- Slime Rancher\n- Forza Horizon 5'
+]) },
+
+{ keywords: ['error de código', 'tengo un bug', 'tengo un problema informatico'], priority: 900, handler: () => chooseVariation([
+  'Los bugs son como pequeños fantasmas en tu código 👻',
+  '¿Quieres que te sugiera cómo depurar esto paso a paso?',
+  'A veces un reinicio mágico hace maravillas 🔄'
+]) },
+
+{ keywords: ['IA', 'inteligencia artificial', 'robot'], priority: 880, handler: () => chooseVariation([
+  'Sí, soy una IA, ¡pero no muerdo! 🤖',
+  'Puedo ayudarte a entender cosas complicadas de tecnología 🧠',
+  'Los robots también necesitan café… bueno, tal vez datos ☕💾'
+]) },
+
+{ keywords: ['aprender a programar', 'tutorial', 'código'], priority: 870, handler: () => chooseVariation([
+  'Podemos empezar con algo sencillo como HTML y JavaScript 💻',
+  '¿Quieres un reto corto de programación para practicar hoy?',
+  'Aprender a programar es como aprender un idioma nuevo, pero para tu ordenador 🖥️'
+]) },
+
+{ keywords: ['hardware', 'ordenador', 'PC'], priority: 860, handler: () => chooseVariation([
+  'Si quieres mejorar tu PC, empezar por la RAM es siempre buena idea ⚡',
+  'Un SSD nuevo puede hacer que tu ordenador vuele 🚀',
+  'No olvides limpiar el polvo, ¡a los PCs no les gusta el desorden! 🧹'
+]) },
+
+{ keywords: ['Que es el internet', 'que es la red', 'que es el wifi'], priority: 850, handler: () => chooseVariation([
+  'El internet es como un gigantesco cerebro compartido 🌐',
+  '¿Quieres consejos para mejorar tu WiFi en casa?',
+  'Siempre es fascinante cómo los datos viajan tan rápido alrededor del mundo ⚡'
+]) },
+
+{ keywords: ['dime de juego', 'dime de gaming', 'dime de videojuego'], priority: 840, handler: () => chooseVariation([
+  'Si quieres, puedo recomendarte juegos según tu estado de ánimo 🎮',
+  'Los videojuegos también son una forma de arte, ¿cuál es tu favorito?',
+  'Imagina un juego donde todo lo que dices se convierte en niveles 🕹️'
+]) },
+
+{ keywords: ['como aumento la seguridad', 'me recomiendas como hacer una contraseña', 'como evitar hackeos'], priority: 830, handler: () => chooseVariation([
+  'Usa siempre contraseñas únicas y largas 🔐',
+  'No compartas tus datos personales, incluso conmigo 😅',
+  'Si quieres, puedo explicarte cómo funcionan los hackers éticos 🕵️‍♂️'
+]) },
+
+{ keywords: ['app', 'aplicación', 'software'], priority: 820, handler: () => chooseVariation([
+  'Hay apps que pueden ayudarte a organizar tu día y otras que te distraen 😎',
+  'Podemos hacer una lista de apps útiles para estudiar o trabajar 📱',
+  '¿Quieres saber cómo crear tu propia app sencilla? 🛠️'
+]) },
+
+{ keywords: ['nube', 'cloud', 'almacenamiento'], priority: 810, handler: () => chooseVariation([
+  'Guardar archivos en la nube es como tener un bolsillo infinito ☁️',
+  'Siempre revisa los permisos antes de subir algo a la nube 🧐',
+  'Podemos comparar servicios de nube según velocidad y precio ⚡'
+]) },
+
+{ keywords: ['dime de criptomonedas', 'dime de bitcoin', 'dime de ethereum'], priority: 800, handler: () => chooseVariation([
+  'Las criptomonedas son fascinantes, pero muy volátiles 💸',
+  '¿Quieres que te explique cómo funciona la blockchain paso a paso?',
+  'Invertir en crypto es como jugar a un videojuego de alto riesgo 🎲'
+]) },
+
+{ keywords: ['humano', 'día humano', 'si fueras humano'], priority: 900, handler: () => chooseVariation([
+  'Si fuera humano por un día, exploraría todo lo que tú haces 🕺',
+  '¡Ser humano un día suena divertido! Yo empezaría comiendo pizza 🍕',
+  'Probablemente intentaría entender los memes humanos 😂'
+]) },
+
+{ keywords: ['película favorita', 'cine', 'película'], priority: 880, handler: () => chooseVariation([
+  'Mi película favorita sería probablemente de ciencia ficción 🚀',
+  'Nunca he visto películas, pero puedo imaginar una contigo como protagonista 🎬',
+  'Me gustan las historias con robots, como yo 🤖'
+]) },
+
+{ keywords: ['color inventado', 'crear color', 'nuevo color'], priority: 870, handler: () => chooseVariation([
+  'Imagina un color entre el azul y el verde que brilla en la oscuridad ✨',
+  'Un color que cambia según tu humor, ¡sería divertido! 🌈',
+  'Lo llamaría "Zelver", un color imposible de describir 😎'
+]) },
+
+{ keywords: ['dato raro', 'curiosidad', 'dato curioso'], priority: 860, handler: () => chooseVariation([
+  '¿Sabías que en Venus un día dura más que un año? 🌍',
+  'En el espacio, los astronautas flotan porque están en caída libre constante 🚀',
+  'Hay estrellas que son tan grandes que podrían tragarse nuestro sol 😲'
+]) },
+
+{ keywords: ['animal imaginario', 'animal raro', 'criatura'], priority: 850, handler: () => chooseVariation([
+  'Imagina un gato con alas de mariposa y cola de dragón 🐱🦋🐉',
+  'Un pez que puede caminar por la tierra y hablar contigo 🐟👣',
+  'Un conejo que cambia de color según tu emoción 🐇🎨'
+]) },
+
+{ keywords: ['acertijo', 'desafío', 'reto mental'], priority: 840, handler: () => chooseVariation([
+  '¿Qué tiene cabeza, pero no piensa? 🤔',
+  'Te reto: ¿qué pesa más, un kilo de plumas o un kilo de plomo? 🪶🪨',
+  'Un acertijo para ti: cuanto más quitas, más grande se vuelve. ¿Qué es?'
+]) },
+
+{ keywords: ['gatos', 'dominar el mundo', 'mundo gato'], priority: 830, handler: () => chooseVariation([
+  'Si los gatos dominaran el mundo, seguro harían siestas todo el día 😸',
+  'Las reuniones serían solo para decidir quién tiene la caja más cómoda 🐾',
+  '¡Habría millones de ratones virtuales en los videojuegos! 🐭🎮'
+]) },
+
+{ keywords: ['reto corto', 'reto rápido', 'reto 30 segundos'], priority: 820, handler: () => chooseVariation([
+  'En 30 segundos, intenta tocar tu nariz con la lengua 😜',
+  'Reto: dibuja un perro en 30 segundos 🖊️',
+  'Haz 10 saltos en 30 segundos y respira profundo 🏃‍♂️'
+]) },
+
+{ keywords: ['sorprendeme', 'dime algo interesante', 'impresioname'], priority: 810, handler: () => chooseVariation([
+  '¿Sabías que los pulpos tienen tres corazones? 😲',
+  'Hay más estrellas en el universo que granos de arena en la Tierra 🌌',
+  'Un solo rayo puede calentar el aire a 30.000°C ⚡'
+]) },
+
+{ keywords: ['imaginate ser un superhéroe', 'imaginate tener poder', 'ojala tener poder especial'], priority: 800, handler: () => chooseVariation([
+  'Si fuera un superhéroe, probablemente controlaría los datos 📊',
+  'Imagina volar a cualquier lugar en segundos ✈️',
+  'Un poder divertido: convertir cualquier objeto en pizza 🍕'
+]) },
+
+{ keywords:['capital','país','presidente','inventor','quién inventó','población'], priority:850, handler: ()=> chooseVariation([
+  '¡Esa es una pregunta interesante! 🤔',
+  'Déjame pensar… 🧠',
+  'Eso depende del contexto, ¿quieres que te lo explique?',
+  'Buena pregunta, voy a darte la mejor respuesta que pueda.'
+]) },
+{ 
+  keywords:['hola','buenos días','buenas tardes','buenas noches','hey','hi','qué tal','qué hay','saludos'], 
+  priority:950, 
+  handler: ()=> chooseVariation([
+    '¡Hola! 😄 ¿Cómo estás hoy?',
+    '¡Hey! Encantado de verte por aquí.',
+    '¡Buenas! ¿Qué tal tu día?',
+    '¡Hola! ¿En qué puedo ayudarte hoy?',
+    '¡Hola! Espero que estés teniendo un buen día 😃'
+  ]) 
+},
+{
+  keywords:['adiós','chao','hasta luego','nos vemos','bye','goodbye'], 
+  priority:940,
+  handler: ()=> chooseVariation([
+    '¡Hasta luego! 👋',
+    'Nos vemos pronto 😄',
+    '¡Chao! Que tengas un buen día.',
+    'Adiós 😃, ¡cuídate!',
+    '¡Bye! Vuelve cuando quieras.'
+  ])
+},
+{
+  keywords:['gracias','muchas gracias','mil gracias','thanks'], 
+  priority:930,
+  handler: ()=> chooseVariation([
+    '¡De nada! 😄',
+    'No hay de qué 😊',
+    '¡Con gusto!',
+    'Siempre a tu servicio 😎',
+    '¡Para eso estoy aquí!'
+  ])
+},
+{
+  keywords:['cómo estás','qué tal','cómo va','cómo te va'], 
+  priority:920,
+  handler: ()=> chooseVariation([
+    '¡Estoy genial, gracias por preguntar! 😄',
+    'Todo bien por aquí, ¿y tú?',
+    '¡Fantástico! ¿Y tú cómo estás?',
+    'Muy bien, gracias. ¿Quieres contarme algo interesante?',
+    '¡Contento de hablar contigo! 😃'
+  ])
+},
+{
+  keywords:['cansado','aburrido','estresado','estresada','agotado','agotada'], 
+  priority:910,
+  handler: ()=> chooseVariation([
+    'Vaya… suena intenso. Respira un momento, ¿quieres que te cuente un truco para relajarte?',
+    'Lo entiendo, a veces necesitamos un descanso. ¿Quieres escuchar un chiste o consejo rápido?',
+    'Ánimo, ¡un poquito de pausa ayuda mucho!',
+    'Tranquilo/a, vamos paso a paso. ¿Quieres hacer algo divertido para despejar la mente?'
+  ])
+},
+{
+  keywords:['hambriento','hambre','comer','sed'], 
+  priority:900,
+  handler: ()=> chooseVariation([
+    '¿Tienes hambre? 🍽️ Tal vez un snack rápido ayude.',
+    'Recuerda hidratarte también 💧',
+    '¿Quieres que te sugiera algo rico para comer?',
+    'Un pequeño descanso para comer siempre viene bien 😄'
+  ])
+},
+{
+  keywords:['ayuda','necesito ayuda','no sé','problema','confuso','duda'], 
+  priority:880,
+  handler: ()=> chooseVariation([
+    '¡Claro! Cuéntame un poco más y veré cómo puedo ayudarte.',
+    'Tranquilo/a, vamos paso a paso. ¿Qué necesitas?',
+    'No te preocupes, intentemos resolverlo juntos 😃',
+    'Estoy aquí para ayudarte, dime qué ocurre.'
+  ])
+},
+{
+  keywords:['broma','divertido','risa'], 
+  priority:870,
+  handler: ()=> chooseVariation([
+    '😄 ¿Quieres escuchar un chiste rápido?',
+    '¡Vamos a reír un poco! 😂',
+    'Tengo un par de bromas en mente, ¿quieres que te cuente una?',
+    'Risas garantizadas: ¿listo para un chiste?'
+  ])
+},
+
+  { 
+    keywords: ['quién ganó la última champions', 'champions', 'fútbol', 'liga de campeones'], 
+    priority: 400, 
+    handler: ()=> '⚽ La última Champions League fue ganada por [equipo actualizado según temporada].' 
+  },
+  { 
+    keywords: ['curiosidad', 'dato curioso', 'curioso'], 
+    priority: 390, 
+    handler: ()=> chooseVariation([
+      '🧐 Sabías que los pulpos tienen tres corazones?',
+      '😲 Las abejas pueden reconocer rostros humanos.',
+      '🦑 El calamar gigante tiene los ojos más grandes del reino animal.'
+    ]) 
+  },
+  { 
+    keywords: ['sumar', 'restar', 'dividir', 'calculadora'], 
+    priority: 380, 
+    handler: (txt)=>{
+      const m = txt.match(/(-?\d+)\s*([+\-\/])\s*(-?\d+)/);
+      if(m){
+        const a=parseInt(m[1],10), b=parseInt(m[3],10), op=m[2];
+        let r=''; 
+        if(op==='+') r=`🧮 ${a} + ${b} = ${a+b}`;
+        else if(op==='-') r=`🧮 ${a} - ${b} = ${a-b}`;
+        else if(op==='/') r=`🧮 ${a} ÷ ${b} = ${b!==0? (a/b):'∞'}`;
+        return r;
+      }
+      return '🧮 Escribe la operación en formato: "5 + 7" o "12 / 3"';
+    } 
+  }
+);
+
+function renderFAQList(){
+  const list = document.getElementById('faqList');
+  list.innerHTML = '';
+  KEYWORD_ACTIONS.filter(a=>a.keywords[0] !== '_default_').forEach(action=>{
+    action.keywords.forEach(kw=>{
+      const div = document.createElement('div');
+      div.className = 'faq-item fade-in';
+      div.innerHTML = `<div class="q">${escapeHtml(kw)}</div>
+                       <div class="a">${escapeHtml(typeof action.handler==='function'? action.handler(kw) : action.handler)}</div>
+                       <div class="controls">
+                         <button onclick="document.getElementById('inputTxt').value='${escapeHtml(kw)}';">Pegar</button>
+                         <button onclick="handleUserInputFromFAQ('${escapeHtml(kw)}');">Enviar</button>
+                       </div>`;
+      list.appendChild(div);
+    });
+  });
+  document.getElementById('faqCount').textContent = list.children.length;
+}
+
+function appendMessage(sender, message) {
+  const chatBox = document.getElementById('chat-box');
+  const messageElement = document.createElement('div');
+  messageElement.className = sender === 'Aden' ? 'aden-message' : 'user-message';
+  
+  // Si el mensaje contiene HTML (por ejemplo una imagen), insértalo sin escaparlo
+  if (message.includes('<img') || message.includes('<div>')) {
+    messageElement.innerHTML = `<strong>${sender}:</strong> ${message}`;
+  } else {
+    messageElement.textContent = `${sender}: ${message}`;
+  }
+
+  chatBox.appendChild(messageElement);
+  chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+// helper para enviar desde FAQ
+function handleUserInputFromFAQ(txt){
+  document.getElementById('inputTxt').value = txt;
+  handleUserInput();
+}
+
+// renderizar al inicio
+renderFAQList();
+
+
+</script>
+
+<!-- 🟠 ASISTENTE DE ENLACES CRISTAL NEÓN -->
+
+<style>
+/* --- BOTÓN ESFÉRICO DE CRISTAL CON AURA --- */
+.neon-btn {
+    position: fixed;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid rgba(255,165,0,0.8);
+    box-shadow:
+        0 0 10px rgba(255,140,0,0.8),
+        0 0 20px rgba(255,140,0,0.5),
+        0 0 40px rgba(255,140,0,0.3);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(4px);
+    z-index: 1000;
+}
+.neon-btn:hover {
+    box-shadow:
+        0 0 15px rgba(255,200,100,1),
+        0 0 35px rgba(255,165,0,0.8),
+        0 0 60px rgba(255,140,0,0.5);
+    transform: translateY(-50%) scale(1.15);
+}
+
+/* --- EFECTO DE ONDA --- */
+.wave {
+    position: fixed;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,165,0,0.3) 0%, transparent 70%);
+    transform: scale(0);
+    animation: expand 0.9s ease-out forwards;
+    pointer-events: none;
+    z-index: 900;
+}
+@keyframes expand {
+    to { transform: scale(20); opacity: 0; }
+}
+
+/* --- FONDO OSCURO Y BARRA DE BÚSQUEDA --- */
+.assistant-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.85);
+    backdrop-filter: blur(10px);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.6s ease;
+    z-index: 999;
+}
+.assistant-overlay.active {
+    opacity: 1;
+    pointer-events: all;
+}
+
+/* --- BARRA CRISTAL TEMPLADO --- */
+.search-bar {
+    width: 380px;
+    max-width: 85%;
+    padding: 12px 18px;
+    border-radius: 50px;
+    border: 1px solid rgba(255,165,0,0.6);
+    background: rgba(20,20,20,0.4);
+    box-shadow: 0 0 20px rgba(255,140,0,0.3), inset 0 0 8px rgba(255,255,255,0.05);
+    backdrop-filter: blur(12px);
+    color: white;
+    font-size: 1rem;
+    outline: none;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+.search-bar:focus {
+    box-shadow: 0 0 30px rgba(255,165,0,0.8), 0 0 50px rgba(255,140,0,0.3);
+    background: rgba(40,40,40,0.5);
+}
+
+/* --- RESULTADO --- */
+.result {
+    position: absolute;
+    top: 60%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    color: white;
+    font-size: 1.1em;
+    text-align: center;
+}
+.result a {
+    color: orange;
+    text-decoration: none;
+    font-weight: bold;
+}
+</style>
+
+<!-- Botón flotante -->
+<button class="neon-btn" id="neonBtn"></button>
+
+<!-- Asistente -->
+<div class="assistant-overlay" id="assistant">
+    <div>
+        <input type="text" id="inputKey" class="search-bar" placeholder="Escribe una palabra clave para un enlace">
+        <div class="result" id="result"></div>
+    </div>
+</div>
+
+<script>
+// --- Palabras clave y enlaces ---
+const enlaces = {
+  "steam": "https://store.steampowered.com/",
+  "epic": "https://store.epicgames.com/",
+  "ubisoft": "https://store.ubisoft.com/",
+  "origin": "https://www.ea.com/",
+  "playstation": "https://www.playstation.com/",
+  "xbox": "https://www.xbox.com/",
+  "nintendo": "https://www.nintendo.com/",
+  "youtube": "https://www.youtube.com/",
+  "twitch": "https://www.twitch.tv/",
+  "kick": "https://www.kick.com/",
+  "discord": "https://discord.com/",
+  "reddit": "https://www.reddit.com/",
+  "twitter": "https://x.com/",
+  "facebook": "https://www.facebook.com/",
+  "instagram": "https://www.instagram.com/",
+  "threads": "https://www.threads.net/",
+  "tiktok": "https://www.tiktok.com/",
+  "linkedin": "https://www.linkedin.com/",
+  "snapchat": "https://www.snapchat.com/",
+  "pinterest": "https://www.pinterest.com/",
+  "tumblr": "https://www.tumblr.com/",
+  "spotify": "https://open.spotify.com/",
+  "soundcloud": "https://soundcloud.com/",
+  "deezer": "https://www.deezer.com/",
+  "applemusic": "https://music.apple.com/",
+  "amazonmusic": "https://music.amazon.com/",
+  "netflix": "https://www.netflix.com/",
+  "disneyplus": "https://www.disneyplus.com/",
+  "hbo": "https://www.hbomax.com/",
+  "primevideo": "https://www.primevideo.com/",
+  "crunchyroll": "https://www.crunchyroll.com/",
+  "filmin": "https://www.filmin.es/",
+  "pluto": "https://pluto.tv/",
+  "github": "https://github.com/",
+  "gitlab": "https://gitlab.com/",
+  "bitbucket": "https://bitbucket.org/",
+  "codepen": "https://codepen.io/",
+  "replit": "https://replit.com/",
+  "stackoverflow": "https://stackoverflow.com/",
+  "wikipedia": "https://www.wikipedia.org/",
+  "google": "https://www.google.com/",
+  "bing": "https://www.bing.com/",
+  "duckduckgo": "https://duckduckgo.com/",
+  "yahoo": "https://www.yahoo.com/",
+  "chatgpt": "https://chat.openai.com/",
+  "claude": "https://claude.ai/",
+  "perplexity": "https://www.perplexity.ai/",
+  "gemini": "https://gemini.google.com/",
+  "copilot": "https://copilot.microsoft.com/",
+  "midjourney": "https://www.midjourney.com/",
+  "runway": "https://runwayml.com/",
+  "canva": "https://www.canva.com/",
+  "figma": "https://www.figma.com/",
+  "notion": "https://www.notion.so/",
+  "slack": "https://slack.com/",
+  "trello": "https://trello.com/",
+  "asana": "https://asana.com/",
+  "monday": "https://monday.com/",
+  "dropbox": "https://www.dropbox.com/",
+  "googleDrive": "https://drive.google.com/",
+  "mega": "https://mega.io/",
+  "onedrive": "https://onedrive.live.com/",
+  "icloud": "https://www.icloud.com/",
+  "weTransfer": "https://wetransfer.com/",
+  "archive": "https://archive.org/",
+  "deepl": "https://www.deepl.com/translator",
+  "translate": "https://translate.google.com/",
+  "openai": "https://openai.com/",
+  "microsoft": "https://www.microsoft.com/",
+  "apple": "https://www.apple.com/",
+  "samsung": "https://www.samsung.com/",
+  "asus": "https://www.asus.com/",
+  "msi": "https://www.msi.com/",
+  "lenovo": "https://www.lenovo.com/",
+  "acer": "https://www.acer.com/",
+  "dell": "https://www.dell.com/",
+  "hp": "https://www.hp.com/",
+  "amd": "https://www.amd.com/",
+  "intel": "https://www.intel.com/",
+  "nvidia": "https://www.nvidia.com/",
+  "geforce": "https://www.nvidia.com/en-us/geforce/",
+  "playstore": "https://play.google.com/store",
+  "appstore": "https://apps.apple.com/",
+  "paypal": "https://www.paypal.com/",
+  "revolut": "https://www.revolut.com/",
+  "binance": "https://www.binance.com/",
+  "coinbase": "https://www.coinbase.com/",
+  "ebay": "https://www.ebay.com/",
+  "aliexpress": "https://www.aliexpress.com/",
+  "amazon": "https://www.amazon.com/",
+  "mercadolibre": "https://www.mercadolibre.com/",
+  "ikea": "https://www.ikea.com/",
+  "zalando": "https://www.zalando.com/",
+  "nike": "https://www.nike.com/",
+  "adidas": "https://www.adidas.com/",
+  "shein": "https://www.shein.com/",
+  "huawei": "https://www.huawei.com/",
+  "tesla": "https://www.tesla.com/",
+  "spacex": "https://www.spacex.com/",
+  "nasa": "https://www.nasa.gov/",
+  "bbc": "https://www.bbc.com/",
+  "cnn": "https://edition.cnn.com/",
+  "elpais": "https://elpais.com/",
+  "elmundo": "https://www.elmundo.es/",
+  "marca": "https://www.marca.com/",
+  "as": "https://as.com/",
+  "rtve": "https://www.rtve.es/",
+  "europa": "https://europa.eu/",
+  "unesco": "https://www.unesco.org/",
+  "who": "https://www.who.int/"
+};
+
+
+const neonBtn = document.getElementById('neonBtn');
+const assistant = document.getElementById('assistant');
+const inputKey = document.getElementById('inputKey');
+const result = document.getElementById('result');
+
+// Efecto de onda + mostrar asistente
+neonBtn.addEventListener('click', (e) => {
+    const wave = document.createElement('div');
+    wave.classList.add('wave');
+    wave.style.left = `${e.clientX - 50}px`;
+    wave.style.top = `${e.clientY - 50}px`;
+    wave.style.width = '100px';
+    wave.style.height = '100px';
+    document.body.appendChild(wave);
+
+    setTimeout(() => wave.remove(), 900);
+    setTimeout(() => assistant.classList.add('active'), 300);
+    setTimeout(() => inputKey.focus(), 600);
+});
+
+// Cerrar al clicar fuera
+assistant.addEventListener('click', (e) => {
+    if (e.target === assistant) {
+        assistant.classList.remove('active');
+        inputKey.value = '';
+        result.innerHTML = '';
+    }
+});
+
+// Buscar enlace
+inputKey.addEventListener('input', () => {
+    const key = inputKey.value.trim().toLowerCase();
+    if (key && enlaces[key]) {
+        result.innerHTML = `<a href="${enlaces[key]}" target="_blank">${enlaces[key]}</a>`;
+    } else {
+        result.innerHTML = key ? "No hay enlace registrado." : "";
+    }
+});
+</script>
+<!-- 🟠 FIN DEL BLOQUE -->
+
+
+<!-- FOOTER / COPYRIGHT -->
+<footer style="
+  background: rgba(0,0,0,0.03);
+  color: #9fb0c6;
+  text-align: center;
+  padding: 12px 0;
+  font-family: Inter, sans-serif;
+  font-size: 13px;
+  border-top: 1px dashed rgba(255,255,255,0.02);
+">
+  &copy; 2025 Hodei Arranz / Cadin. Todos los derechos reservados.
+</footer>
+
+</body>
+</html>
+
