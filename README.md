@@ -24,16 +24,22 @@ X.7 (Version Finalizada)
 
 **No siempre se cumplen orden de versiones, solo si es necesario**
 
+***NUEVA ACTUALIZACIÓN V10***
+
+- Carga de web por secciones de forma inteligente (mejora de optimizacion)
+- Mas frases e inteligencia para Aden
+- Proximamente una version Turbo con la ayuda de Modelo GPT
 
 
 
-**<h1>a<h1/>**
+
 
 
 
 
 
 © 2025 Hodei Arranz / Cadin. Todos los derechos reservados.
+
 
 
 
