@@ -10,31 +10,25 @@ El repositorio de Aden se ira actualizando con nuevas versiones, para acceder a 
 -----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-Formato Versiones (Entendimiento de Modificacion prospero a su publicacion)
 
-X.0 (Primera Version, sin pulido)
-
-X.2 (Correccion de errores menores)
-
-X.5 (Correccion de errores mayores)
-
-X.6 (Funcion añadida)
-
-X.7 (Version Finalizada)
-
-**No siempre se cumplen orden de versiones, solo si es necesario**
-<h1>ESTE FORMATO SERA CAMBIADO EN 2026</h1>
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-***NUEVA ACTUALIZACIÓN V10***
+<h1>Actualización 2026</h1>
 
-- Carga de web por secciones de forma inteligente (mejora de optimizacion)
-- Mas frases e inteligencia para Aden
-- Proximamente una version Turbo con la ayuda de Modelo GPT
+**<h2>Aden IA 26</h2>**
+
+- Interfaz rediseñada
+- Paleta de colores cambiada
+- Optimizacion de la pagina
+- animaciones inecesarias eliminadas
+- correccion de errores
+- mas de 600 respuestas a Aden añadidas
+- **y Aden IA 26 esta colgado en internet**
 
 
-
+<h1>**ENLACE A ADEN IA 26**</h1>
+https://adenia26.netlify.app/
 
 
 
