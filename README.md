@@ -30,6 +30,8 @@ El repositorio de Aden se ira actualizando con nuevas versiones, para acceder a 
 <h1>**ENLACE A ADEN IA 26**</h1>
 https://adenia26.netlify.app/
 
+_Aden ia 2026 se ira actualizando tanto la version de github y como la de web_
+
 
 
 
