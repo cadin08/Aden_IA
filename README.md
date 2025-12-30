@@ -24,6 +24,7 @@ El repositorio de Aden se ira actualizando con nuevas versiones, para acceder a 
 - animaciones inecesarias eliminadas
 - correccion de errores
 - mas de 600 respuestas a Aden añadidas
+- Ahora es capaz de resumir cualquier texto
 - **y Aden IA 26 esta colgado en internet**
 
 
