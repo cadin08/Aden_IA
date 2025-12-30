@@ -3213,7 +3213,7 @@ document.getElementById('searchChats').addEventListener('input', e=>{
 });
 
 /* suggestions */
-const SUGGESTIONS = ['¡hola!','me dices un dato raro','hazme reir','¿me das la hora?','¿que fecha es?','¿que tal estas?','25 x 47','Cuentame una historia','qué es la inteligencia artificial','dime una receta','¿Y tu como funcionas?'];
+const SUGGESTIONS = ['¡hola!','me dices un dato raro','hazme reir','¿me das la hora?','¿que fecha es?','¿que tal estas?','resume...','Cuentame una historia','qué es la inteligencia artificial','dime una receta','¿Y tu como funcionas?'];
 function renderSuggestions(){ const container=document.getElementById('suggestions'); container.innerHTML=''; SUGGESTIONS.forEach(s=>{ const c=document.createElement('div'); c.className='chip'; c.innerText=s; c.onclick=()=>{ document.getElementById('inputTxt').value=s; updateCharCount(); document.getElementById('inputTxt').focus(); }; container.appendChild(c); }); }
 
 /* char counter */
@@ -6896,6 +6896,28 @@ Sus ideas influyeron profundamente en la ciencia moderna y en el pensamiento fil
       '🦑 El calamar gigante tiene los ojos más grandes del reino animal.'
     ]) 
   },
+{
+  keywords:['resume','resumen','resumemelo','resúmelo'],
+  priority: 1000,
+  handler: (input) => {
+
+    // 1. Quitar la orden "resume"
+    const texto = input.replace(
+      /^(resume|resumen|resumemelo|resúmelo)\s*/i,
+      ''
+    );
+
+    // 2. Validación mínima
+    if (texto.length < 100) {
+      return 'El texto es demasiado corto para resumir.';
+    }
+
+    // 3. Resumir (MUY corto para que se note)
+    const resumen = resumirTexto(texto, 2);
+
+    return 'Resumen:\n' + resumen;
+  }
+},
   { 
     keywords: ['sumar', 'restar', 'dividir', 'calculadora'], 
     priority: 380, 
@@ -6913,6 +6935,42 @@ Sus ideas influyeron profundamente en la ciencia moderna y en el pensamiento fil
     } 
   }
 );
+
+function resumirTexto(texto, maxFrases = 3) {
+  const stopwords = new Set([
+    'el','la','los','las','de','y','a','en','que','un','una',
+    'por','con','para','es','al','del','se','su','sus'
+  ]);
+
+  const frases = texto.match(/[^\.!\?]+[\.!\?]+/g) || [];
+
+  const frecuencia = {};
+  frases.forEach(frase => {
+    frase.toLowerCase()
+      .replace(/[^\w\s]/g, '')
+      .split(/\s+/)
+      .forEach(p => {
+        if (!stopwords.has(p) && p.length > 2) {
+          frecuencia[p] = (frecuencia[p] || 0) + 1;
+        }
+      });
+  });
+
+  const puntuadas = frases.map(frase => {
+    let score = 0;
+    frase.toLowerCase().split(/\s+/).forEach(p => {
+      score += frecuencia[p] || 0;
+    });
+    return { frase, score };
+  });
+
+  return puntuadas
+    .sort((a, b) => b.score - a.score)
+    .slice(0, maxFrases)
+    .map(f => f.frase.trim())
+    .join(' ');
+}
+
 
 function renderFAQList(){
   const list = document.getElementById('faqList');
