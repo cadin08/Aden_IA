@@ -38,7 +38,7 @@ _Aden ia 2026 se ira actualizando tanto la version de github y como la de web_
 
 
 
-© 2025 Hodei Arranz / Cadin. Todos los derechos reservados.
+© 2025-2026 Hodei Arranz / Cadin. Todos los derechos reservados.
 
 
 
