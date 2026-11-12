@@ -14,31 +14,27 @@ https://adeniadoc.netlify.app/
 
 --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
-<h1>Actualización 2026</h1>
+<h1>NUEVO ADEN</h1>
 
-**<h2>Aden IA 26</h2>**
+**<h2>Aden IA PRO</h2>**
 
-- Interfaz rediseñada
-- Paleta de colores cambiada
-- Optimizacion de la pagina
-- animaciones inecesarias eliminadas
-- correccion de errores
-- mas de 600 respuestas a Aden añadidas
-- Ahora es capaz de resumir cualquier texto
-- **y Aden IA 26 esta colgado en internet**
+- MAS POTENTE
+- MAS RAPIDO
+- MAS RESPUESTAS
+- CASI 18.000 RESPUESTAS EN TOTAL SIN CONTAR FUNCIONES AVANZADAS
+- ACCIONES AVANZADAS (ANALIZAR IMAGENES, DESCARGAR DOCUMENTOS, TEMPORIZADOR Y MUCHO MAS...)
+  
 
-
-<h1>**ENLACE A ADEN IA 26**</h1>
-https://adenia26.netlify.app/
-
-_Aden ia 2026 se ira actualizando tanto la version de github y como la de web_
+<h6>ade ia pro es un proyecto de ia local sin animo de lucro, una ia sin ecesidad de ser instalada, puro html css y jss</h6>
+<h6>proyecto de codigo abierto</h6>
 
 
 
 
 
 
-© 2025-2026 Hodei Arranz / Cadin. Todos los derechos reservados.
+
+© 2026-2027 Hodei Arranz / Cadin. 
 
 
 
