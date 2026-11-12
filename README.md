@@ -25,7 +25,7 @@ https://adeniadoc.netlify.app/
 - ACCIONES AVANZADAS (ANALIZAR IMAGENES, DESCARGAR DOCUMENTOS, TEMPORIZADOR Y MUCHO MAS...)
   
 
-<h6>ade ia pro es un proyecto de ia local sin animo de lucro, una ia sin ecesidad de ser instalada, puro html css y jss</h6>
+<h6>ade ia pro es un proyecto de ia local sin animo de lucro, una ia sin necesidad de ser instalada, puro html css y jss</h6>
 <h6>proyecto de codigo abierto</h6>
 
 
